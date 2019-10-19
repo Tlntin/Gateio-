@@ -19,6 +19,6 @@
 
 ## 4.请我喝茶
 ![](https://github.com/Tlntin/Gateio-/blob/master/weixin.png)
-![](https://github.com/Tlntin/Gateio-/blob/master/weixin.png)  
+![](https://github.com/Tlntin/Gateio-/blob/master/zfb.png)  
 
 ## 5.运行效果展示
