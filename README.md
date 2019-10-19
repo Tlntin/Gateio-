@@ -18,7 +18,7 @@
 3.3运行很简单，如果需要付费远程的可以联系本人qq：371043382
 
 ## 4.请我喝茶
-![](https://github.com/Tlntin/Gateio-/weixin.png)
-![](https://github.com/Tlntin/Gateio-/zfb.png)  
+![](https://github.com/Tlntin/Gateio-/blob/master/weixin.png)
+![](https://github.com/Tlntin/Gateio-/blob/master/weixin.png)  
 
 ## 5.运行效果展示
