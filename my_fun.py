@@ -159,6 +159,6 @@ def basic_query_fun():  # 自定义一个基础查询函数
             if round(b_trade_amount, 6) == round(b_num[m], 6):  # 增加取6位小数操作，防止小数点过多引起误差
                 cost_last = cost_1 / b_trade_amount  # 单个币种的动态成本 / 单个币种的持币数量
                 b_trade_cost.append(round(cost_last, 4))  # 添加持仓成本到数组
-                # break  # 退出该循环，不需进行下面的操作，防止偶然性的满足if要求
+                break  # 退出该循环，不需进行下面的操作，防止偶然性的满足if要求
     # 返回可用货币名称、数量、点卡、基础币数量、各类币种持仓成本
     return b_name, b_num, point_num, base_b_num, b_trade_cost

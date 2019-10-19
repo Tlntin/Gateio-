@@ -30,7 +30,7 @@ while True:
         (b_name, b_num, point_num, base_b_num, b_trade_cost) = basic_query_fun()
         time.sleep(2)  # 等1秒
         # 定义一个for循环，用于实时更新数据
-        for i in range(30):
+        for i in range(5):
             # 返回钱包总额(美元)，钱包总额（人民币），币种最近价格
             (total_money, total_cny, b_price_last) = total_money_query()
             profit = total_money - cost  # 总利润=总金额-总成本(不考虑手续费)
