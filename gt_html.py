@@ -5,7 +5,7 @@ import datetime
 import pytz
 from User_input import user_info
 from User_input import other_info
-from my_fun import vip_fun, trade_cost_query, total_money_query, basic_query_fun
+from my_fun import vip_fun, trade_cost_query, total_money_query, basic_query_fun, orders_fun
 
 # 获取用户信息
 (apiKey, secretKey, btcAddress, API_QUERY_URL, API_TRADE_URL) = user_info()
@@ -28,13 +28,17 @@ while True:
         # 查询基础信息
         # 可用货币名称、数量、点卡、基础币数量、各类币种持仓成本
         (b_name, b_num, point_num, base_b_num, b_trade_cost) = basic_query_fun()
-        time.sleep(2)  # 等1秒
+        (order_len, order_name, order_type, initial_rate, initial_amount, order_total, deal_rate, fill_rate,
+         order_status) = orders_fun()
+        time.sleep(1)  # 等1秒
         # 定义一个for循环，用于实时更新数据
-        for i in range(5):
-            # 返回钱包总额(美元)，钱包总额（人民币），币种最近价格
-            (total_money, total_cny, b_price_last) = total_money_query()
-            profit = total_money - cost  # 总利润=总金额-总成本(不考虑手续费)
-            profit_qc = total_money - cost_qc  # 总利润=总金额-总成本(含手续费)
+        for i in range(10):
+            # 返回钱包总额(美元)，钱包总额（人民币），币种最近价格,可用基础货币
+            (total_money, total_cny, b_price_last, base_b_mum_available) = total_money_query()
+
+            # 总利润=商品折算后的总金额-商品订单总成本(不考虑手续费)=总金额 - 基础代币- 订单总成本
+            profit = total_money - base_b_num - cost
+            profit_qc = total_money - base_b_num - cost_qc
             profit_qz = profit - float(gate_query.ticker("gt_usdt")['last']) * free_b
             profit_qc_qz = profit_qc - float(gate_query.ticker("gt_usdt")['last']) * free_b
             # 开始生成html文件--------------------------------------------------
@@ -61,11 +65,11 @@ while True:
         <p>数据刷新时间:%s</p>
         <p>用户名：%s &#9||&#9 VIP等级：<font color="red">VIP%d</font></p>
         <p>费率：Maker：%.3f%% &#9||&#9 Taker：%.3f%%</p>
-        <p>目前持币情况(共有%d种币种)：</p>
+        <h3>持币情况</h3>
         <table border="1" cellspacing="0">
               <tr>
                 <th width="100"; style="text-align: center">持有币种</th>  
-            """ % (str_time, UserName, Vip_level, round(100*Maker, 3), round(100*Taker, 3), len(b_name))
+            """ % (str_time, UserName, Vip_level, round(100*Maker, 3), round(100*Taker, 3))
             # 写入持有币种类别信息，不包括点卡和USDT
             for x in range(len(b_name)):
                 message1 = """
@@ -92,6 +96,7 @@ while True:
                 <td width="100"; style="text-align: center">持仓成本价</td>
             """
             message = message + message4
+            print(b_trade_cost)
             # 写入持仓成本价格
             for m in range(len(b_name)):
                 message5 = """
@@ -138,21 +143,56 @@ while True:
                 <td width="80"; style="text-align: center">%.2f%%</td>    
                 """ % (((b_price_last[xx] / b_trade_cost[xx])-1)*100)
                 message = message + message11
-            # 写入钱包信息
+            # 写入挂单情况
+            message11_2 = """
+            </tr>
+        </table>
+            <h3>挂单情况</h3>
+        <table border="1" cellspacing="0">
+            <tr>"""
+            message = message + message11_2
+            # 写入挂单情况
+            message11_3 = """
+                <th width="90" style="text-align: center">交易对</th>
+                <th width="50" style="text-align: center">类型</th>
+                <th width="60" style="text-align: center">单价</th>
+                <th width="60" style="text-align: center">数量</th>
+                <th width="60" style="text-align: center">总价</th>
+                <th width="60" style="text-align: center">成交价</th>
+                <th width="60" style="text-align: center">成交率</th>
+                <th width="70" style="text-align: center">订单状态</th>
+            </tr>
+            <tr>
+            """
+            message = message + message11_3
+            for xx in range(order_len):
+                message11_4 = """
+                <td style="text-align: center">%s</td>
+                <td style="text-align: center">%s</td>
+                <td style="text-align: center">%s</td>
+                <td style="text-align: center">%s</td>
+                <td style="text-align: center">%s</td>
+                <td style="text-align: center">%s</td>
+                <td style="text-align: center">%.2f%%</td>
+                <td style="text-align: center">%s</td>
+            """ % (order_name[xx], order_type[xx], str(initial_rate[xx]), str(initial_amount[xx]), str(order_total[xx]),
+                   str(deal_rate[xx]), fill_rate[xx]*100, order_status[xx])
+                message = message + message11_4
+            # 写入情况信息
             message12 = """
             </tr>
         </table>
-        <p>目前钱包总额为：%.2f(美元折算) &#9||&#9 %.2f(人民币折算)</p>
-        <p>点卡数量: %.2f</p>
-        <p>可用%s数量：%.2f</p>
-        """ % (total_money, total_cny, point_num, base_b, base_b_num)
+        <p>目前钱包总额为：<strong>%.2f</strong>(美元折算) &#9||&#9 <strong>%.2f</strong>(人民币折算)</p>
+        <p>点卡数量: <strong>%.2f</strong></p>
+        <p>总的%s数量：<strong>%.2f</strong>&#9||&#9可用%s数量：<strong>%.2f</strong></p>
+        """ % (total_money, total_cny, point_num, base_b, base_b_num, base_b,base_b_mum_available)
             message = message + message12
             # 开始计算累计收益
             message13 = """
-        <h2>累计收益</h2>
+        <h3>累计收益</h3>
         <table border="1" cellspacing="0">
             <tr>
-                <th colspan="4">总收益(单位：美元)</th>
+                <td colspan="4"; style="text-align: center">总收益(单位：美元)</td>
             </tr>
             <tr>
                 <td colspan="2"; style="text-align: center">不考虑手续费</td>
@@ -170,7 +210,9 @@ while True:
                 <td width="80"; style="text-align: center">%.4f</td>
                 <td width="80"; style="text-align: center">%.4f</td>
             </tr>
-            </table>
+        </table>
+            <h3>开源链接</h3>
+            <p>跳转<a target="_blank" href="https://github.com/Tlntin/Gateio-">github</a></p>
                     """ % (profit, profit_qz, profit_qc, profit_qc_qz)
             message = message + message13
             # 写入Html的最后部分，加入手机端自适应大小

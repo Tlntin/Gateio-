@@ -40,8 +40,8 @@ def trade_cost_query():  # 定义一个查询支出的函数,暂未考虑持币�
     b_name_all.remove('POINT')
     b_name_all.remove(base_b)
     b_types_all = len(b_name_all)  # 计算所有币种
-    cost = 0.0  # 初始支出为零
-    cost_qc = 0.0  # 初始支出（去手续费）为零
+    cost = 0.0  # 初始支出为零,此时币种全为USDT
+    cost_qc = 0.0  # 初始支出（去手续费）为零，币种只有USDT
     for z in range(b_types_all):
         data_1 = json.loads(gate_trade.mytradeHistory(b_name_all[z] + "_" + base_b, ""))  # 订单号留空,查询成功后转json字典
         data_trade_1 = data_1['trades']  # 提取交易信息
@@ -83,7 +83,8 @@ def total_money_query():  # 定义一个计算钱包总额，以及各类货币�
     # 去除货币中的点卡 、USDT、以及数量为零的可用货币
     b_name = []  # 创建数组用于储存可用数字货币名称
     b_num = []  # 创建数组用于储存可用数字货币数量
-    base_b_num = 0.0  # 基础货币数量为0.0
+    base_b_num = 0.0  # 基础货币总数
+    base_b_mum_available = 0.0  # 可用基础货币
     for i in range(key_types):
         if money_key_available[i] != 'POINT' and money_key_available[i] != base_b:
             if money_num_all[i] != 0.0:
@@ -92,6 +93,7 @@ def total_money_query():  # 定义一个计算钱包总额，以及各类货币�
 
         if money_key_available[i] == base_b:
             base_b_num = money_num_all[i]
+            base_b_mum_available = float(money_num_available[i])
 
     b_types = len(b_name)  # 持仓币种数量
 
@@ -112,7 +114,7 @@ def total_money_query():  # 定义一个计算钱包总额，以及各类货币�
     price_cny = gate_query.ticker(base_b + '_CNY')['last']
     total_cny = float(price_cny) * total_money
     # 返回钱包总额(美元)，钱包总额（人民币），币种最近价格
-    return total_money, total_cny,  b_price_last
+    return total_money, total_cny, b_price_last, base_b_mum_available
 
 
 def basic_query_fun():  # 自定义一个基础查询函数
@@ -176,3 +178,42 @@ def basic_query_fun():  # 自定义一个基础查询函数
                 break  # 退出该循环，不需进行下面的操作，防止偶然性的满足if要求
     # 返回可用货币名称、数量、点卡、基础币数量、各类币种持仓成本
     return b_name, b_num, point_num, base_b_num, b_trade_cost
+
+
+def orders_fun():  # 挂单状态函数
+    data = json.loads(gate_query.openOrders())  # 获取文本后转字典
+    data1 = data["orders"]
+    order_len = len(data1)  # 获取订单数量
+    order_name = []  # 交易对名称
+    order_type = []  # 定义数组储存类型
+    initial_rate = []  # 下单价格
+    initial_amount = []  # 下单数量
+    order_total = []  # 订单总价
+    deal_rate = []  # 成交价格
+    deal_amount = []  # 成交数量
+    fill_rate = []  # 完成率
+    order_status = []  # 交易状态
+    for i in range(order_len):
+        order_name.append(data1[i]['currencyPair'].upper())
+        data2 = data1[i]['type']
+        if data2 == "sell":
+            data2 = "卖出"
+        else:
+            data2 = "买入"
+        order_type.append(data2)
+        initial_rate.append(float(data1[i]['initialRate']))
+        initial_amount.append(float(data1[i]['initialAmount']))
+        order_total.append(float(data1[i]['total']))
+        deal_rate.append(float(data1[i]['filledRate']))
+        deal_amount.append(float(data1[i]['filledAmount']))
+        fill_rate.append(deal_amount[i] / initial_amount[i])
+        data3 = data1[i]['status']
+        if data3 == "open":
+            data3 = "已挂单"
+        elif data3 == "cancelled":
+            data3 = "已取消"
+        else:
+            data3 = "已完成"
+        order_status.append(data3)
+    return order_len, order_name, order_type, initial_rate, initial_amount, order_total, deal_rate, fill_rate, \
+        order_status
