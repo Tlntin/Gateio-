@@ -28,7 +28,8 @@ while True:
         # 查询基础信息
         # 可用货币名称、数量、点卡、基础币数量、各类币种持仓成本
         (b_name, b_num, point_num, base_b_num, b_trade_cost) = basic_query_fun()
-        (order_len, order_name, order_type, initial_rate, initial_amount, order_total, deal_rate, fill_rate,
+        # 持仓订单数，交易对名称，类型，单价，数量，总价，成交率，挂单状态
+        (order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate,
          order_status) = orders_fun()
         time.sleep(1)  # 等1秒
         # 定义一个for循环，用于实时更新数据
@@ -42,7 +43,8 @@ while True:
             profit_qz = profit - float(gate_query.ticker("gt_usdt")['last']) * free_b
             profit_qc_qz = profit_qc - float(gate_query.ticker("gt_usdt")['last']) * free_b
             # 开始生成html文件--------------------------------------------------
-            GEN_HTML = "index.html"  # 路径准备
+            # GEN_HTML = "index.html"  # 路径准备
+            GEN_HTML = "/fakesite/gate/index.html"
             # 获取刷新时间(以北京时间为准)
             fmt = '%Y-%m-%d %H:%M:%S %Z'
             d = datetime.datetime.now(pytz.timezone("Asia/Shanghai"))
@@ -68,19 +70,19 @@ while True:
         <h3>持币情况</h3>
         <table border="1" cellspacing="0">
               <tr>
-                <th width="100"; style="text-align: center">持有币种</th>  
+                <th width="100"; style="text-align: center">币种</th>  
             """ % (str_time, UserName, Vip_level, round(100*Maker, 3), round(100*Taker, 3))
             # 写入持有币种类别信息，不包括点卡和USDT
             for x in range(len(b_name)):
                 message1 = """
-                <th width="80"; style="text-align: center">%s</th>    
+                <td width="80"; style="text-align: center">%s</td>    
                 """ % (b_name[x])
                 message = message + message1
             # 写入币种数量信息
             message2 = """
             </tr>
             <tr>
-                <td width="100"; style="text-align: center">持有数量</td>
+                <th width="100"; style="text-align: center">数量</th>
             """
             message = message + message2
             # 写入币种数量
@@ -93,7 +95,7 @@ while True:
             message4 = """
             </tr>
             <tr>
-                <td width="100"; style="text-align: center">持仓成本价</td>
+                <th width="100"; style="text-align: center">成本价</th>
             """
             message = message + message4
             print(b_trade_cost)
@@ -108,7 +110,7 @@ while True:
             message6 = """
             </tr>
             <tr>
-                <td width="100"; style="text-align: center">最新动态价</td>
+                <th width="100"; style="text-align: center">最新价</th>
             """
             message = message + message6
             # 写入最新动态价格
@@ -121,63 +123,73 @@ while True:
             message8 = """
             </tr>
             <tr>
-                <td width="100"; style="text-align: center">动态收益</td>
+                <th width="100"; style="text-align: center">收益</th>
             """
             message = message + message8
             # 写入最新动态收益
             for ii in range(len(b_name)):
-                message9 = """
-                <td width="80"; style="text-align: center">%.4f</td>    
+                if b_price_last[ii]-b_trade_cost[ii] < 0:
+                    message9 = """
+                <td width="80"; style="text-align: center"><font color="red">%.4f</font></td>    
                 """ % ((b_price_last[ii]-b_trade_cost[ii])*b_num[ii])
+                else:
+                    message9 = """
+                <td width="80"; style="text-align: center">%.4f</td>    
+                """ % ((b_price_last[ii] - b_trade_cost[ii]) * b_num[ii])
                 message = message + message9
             # 写入动态收益率
             message10 = """
             </tr>
             <tr>
-                <td width="100"; style="text-align: center">动态收益率</td>
+                <th width="100"; style="text-align: center">收益率</th>
                 """
             message = message + message10
             # 写入最新动态收益
             for xx in range(len(b_name)):
-                message11 = """
-                <td width="80"; style="text-align: center">%.2f%%</td>    
+                if ((b_price_last[xx] / b_trade_cost[xx])-1) < 0:
+                    message11 = """
+                <td width="80"; style="text-align: center"><font color="red">%.2f%%</font></td>    
                 """ % (((b_price_last[xx] / b_trade_cost[xx])-1)*100)
+                else:
+                    message11 = """
+                <td width="80"; style="text-align: center">%.2f%%</td>    
+                """ % (((b_price_last[xx] / b_trade_cost[xx]) - 1) * 100)
+
                 message = message + message11
             # 写入挂单情况
-            message11_2 = """
-            </tr>
-        </table>
-            <h3>挂单情况</h3>
-        <table border="1" cellspacing="0">
-            <tr>"""
-            message = message + message11_2
-            # 写入挂单情况
-            message11_3 = """
-                <th width="90" style="text-align: center">交易对</th>
-                <th width="50" style="text-align: center">类型</th>
-                <th width="60" style="text-align: center">单价</th>
-                <th width="60" style="text-align: center">数量</th>
-                <th width="60" style="text-align: center">总价</th>
-                <th width="60" style="text-align: center">成交价</th>
-                <th width="60" style="text-align: center">成交率</th>
-                <th width="70" style="text-align: center">订单状态</th>
-            </tr>
-            <tr>
-            """
-            message = message + message11_3
-            for xx in range(order_len):
-                message11_4 = """
-                <td style="text-align: center">%s</td>
-                <td style="text-align: center">%s</td>
-                <td style="text-align: center">%s</td>
-                <td style="text-align: center">%s</td>
-                <td style="text-align: center">%s</td>
-                <td style="text-align: center">%s</td>
-                <td style="text-align: center">%.2f%%</td>
-                <td style="text-align: center">%s</td>
-            """ % (order_name[xx], order_type[xx], str(initial_rate[xx]), str(initial_amount[xx]), str(order_total[xx]),
-                   str(deal_rate[xx]), fill_rate[xx]*100, order_status[xx])
-                message = message + message11_4
+            if order_len != 0:  # 如果当前存在挂单
+                message11_2 = """
+                </tr>
+            </table>
+                <h3>挂单情况</h3>
+            <table border="1" cellspacing="0">
+                <tr>"""
+                message = message + message11_2
+                # 写入挂单情况
+                message11_3 = """
+                    <th width="90" style="text-align: center">交易对</th>
+                    <th width="50" style="text-align: center">类型</th>
+                    <th width="60" style="text-align: center">单价</th>
+                    <th width="60" style="text-align: center">数量</th>
+                    <th width="60" style="text-align: center">总价</th>
+                    <th width="60" style="text-align: center">成交率</th>
+                    <th width="70" style="text-align: center">状态</th>
+                </tr>
+                <tr>
+                """
+                message = message + message11_3
+                for xx in range(order_len):
+                    message11_4 = """
+                    <td style="text-align: center">%s</td>
+                    <td style="text-align: center">%s</td>
+                    <td style="text-align: center">%s</td>
+                    <td style="text-align: center">%s</td>
+                    <td style="text-align: center">%s</td>
+                    <td style="text-align: center">%.2f%%</td>
+                    <td style="text-align: center">%s</td>
+                """ % (order_name[xx], order_type[xx], str(initial_rate[xx]), str(initial_amount[xx]),
+                       str(order_total[xx]), fill_rate[xx]*100, order_status[xx])
+                    message = message + message11_4
             # 写入情况信息
             message12 = """
             </tr>

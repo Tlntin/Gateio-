@@ -189,7 +189,6 @@ def orders_fun():  # 挂单状态函数
     initial_rate = []  # 下单价格
     initial_amount = []  # 下单数量
     order_total = []  # 订单总价
-    deal_rate = []  # 成交价格
     deal_amount = []  # 成交数量
     fill_rate = []  # 完成率
     order_status = []  # 交易状态
@@ -204,7 +203,6 @@ def orders_fun():  # 挂单状态函数
         initial_rate.append(float(data1[i]['initialRate']))
         initial_amount.append(float(data1[i]['initialAmount']))
         order_total.append(float(data1[i]['total']))
-        deal_rate.append(float(data1[i]['filledRate']))
         deal_amount.append(float(data1[i]['filledAmount']))
         fill_rate.append(deal_amount[i] / initial_amount[i])
         data3 = data1[i]['status']
@@ -215,5 +213,4 @@ def orders_fun():  # 挂单状态函数
         else:
             data3 = "已完成"
         order_status.append(data3)
-    return order_len, order_name, order_type, initial_rate, initial_amount, order_total, deal_rate, fill_rate, \
-        order_status
+    return order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate, order_status
