@@ -63,24 +63,35 @@ def total_money_query():  # 定义一个计算钱包总额，以及各类货币�
     # 获取帐号资金余额
     date0 = gate_trade.balances()
     date1 = json.loads(date0)
-    total_money1 = date1["available"]  # 数字货币
+    total_money1 = date1["available"]  # 可用数字货币
+    total_money0 = date1["locked"]  # 锁定数字货币
 
-    # 可用货币
+    # 可交易货币
     money_key_available = list(total_money1.keys())
     money_num_available = list(total_money1.values())
     key_types = len(money_key_available)
+
+    # 不可交易货币(处于挂单状态中，暂时不可交易)
+    # money_key_locked = list(total_money0.keys()) 这个和上面的可交易币种名称是一样的
+    money_num_locked = list(total_money0.values())
+
+    # 总货币数量
+    money_num_all = []
+    for i in range(key_types):
+        money_num_all.append(float(money_num_available[i]) + float(money_num_locked[i]))  # 将挂单中的币数量加上去
+
     # 去除货币中的点卡 、USDT、以及数量为零的可用货币
     b_name = []  # 创建数组用于储存可用数字货币名称
     b_num = []  # 创建数组用于储存可用数字货币数量
     base_b_num = 0.0  # 基础货币数量为0.0
     for i in range(key_types):
         if money_key_available[i] != 'POINT' and money_key_available[i] != base_b:
-            if float(money_num_available[i]) != 0.0:
+            if money_num_all[i] != 0.0:
                 b_name.append(money_key_available[i])
-                b_num.append(float(money_num_available[i]))
+                b_num.append(money_num_all[i])
 
         if money_key_available[i] == base_b:
-            base_b_num = float(money_num_available[i])
+            base_b_num = money_num_all[i]
 
     b_types = len(b_name)  # 持仓币种数量
 
@@ -116,9 +127,12 @@ def basic_query_fun():  # 自定义一个基础查询函数
     money_num_available = list(total_money1.values())
     key_types = len(money_key_available)
 
-    # 锁仓货币
+    # 锁仓货币(处于挂单状态中，暂时不可交易)
     money_key_locked = list(total_money0.keys())
     money_num_locked = list(total_money0.values())
+    money_num_all = []
+    for i in range(key_types):
+        money_num_all.append(float(money_num_available[i]) + float(money_num_locked[i]))  # 将挂单中的币数量加上去
 
     # 去除货币中的点卡 、USDT、以及数量为零的可用货币
     b_name = []  # 创建数组用于储存可用数字货币名称
@@ -127,14 +141,14 @@ def basic_query_fun():  # 自定义一个基础查询函数
     base_b_num = 0.0  # 基础货币数量为0.0
     for i in range(key_types):
         if money_key_available[i] != 'POINT' and money_key_available[i] != base_b:
-            if float(money_num_available[i]) != 0.0:
+            if money_num_all[i] != 0.0:
                 b_name.append(money_key_available[i])
-                b_num.append(float(money_num_available[i]))
+                b_num.append(money_num_all[i])
 
         if money_key_available[i] == 'POINT':
-            point_num = float(money_num_available[i])
+            point_num = money_num_all[i]
         if money_key_available[i] == base_b:
-            base_b_num = float(money_num_available[i])
+            base_b_num = money_num_all[i]
 
     b_types = len(b_name)  # 持仓币种数量
 
