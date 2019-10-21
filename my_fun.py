@@ -3,6 +3,7 @@ from gateAPI import GateIO
 import json
 from User_input import user_info
 from User_input import other_info
+from urllib import request
 
 # 获取用户信息
 (apiKey, secretKey, btcAddress, API_QUERY_URL, API_TRADE_URL) = user_info()
@@ -141,6 +142,7 @@ def basic_query_fun():  # 自定义一个基础查询函数
     b_num = []  # 创建数组用于储存可用数字货币数量
     point_num = 0.0  # 初始点卡数量为0.0
     base_b_num = 0.0  # 基础货币数量为0.0
+    base_b_mum_available2 = 0.0  # 可用基础货币
     for i in range(key_types):
         if money_key_available[i] != 'POINT' and money_key_available[i] != base_b:
             if money_num_all[i] != 0.0:
@@ -151,7 +153,7 @@ def basic_query_fun():  # 自定义一个基础查询函数
             point_num = money_num_all[i]
         if money_key_available[i] == base_b:
             base_b_num = money_num_all[i]
-
+            base_b_mum_available2 = float(money_num_available[i])
     b_types = len(b_name)  # 持仓币种数量
 
     # 计算持仓成本------------------------------------------------
@@ -176,8 +178,8 @@ def basic_query_fun():  # 自定义一个基础查询函数
                 cost_last = cost_1 / b_trade_amount  # 单个币种的动态成本 / 单个币种的持币数量
                 b_trade_cost.append(round(cost_last, 4))  # 添加持仓成本到数组
                 break  # 退出该循环，不需进行下面的操作，防止偶然性的满足if要求
-    # 返回可用货币名称、数量、点卡、基础币数量、各类币种持仓成本
-    return b_name, b_num, point_num, base_b_num, b_trade_cost
+    # 返回可用货币名称、数量、点卡、基础币总量、可用基础币、各类币种持仓成本
+    return b_name, b_num, point_num, base_b_num, base_b_mum_available2, b_trade_cost
 
 
 def orders_fun():  # 挂单状态函数
@@ -214,3 +216,71 @@ def orders_fun():  # 挂单状态函数
             data3 = "已完成"
         order_status.append(data3)
     return order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate, order_status
+
+
+# 定义一个自动查找最佳货币的函数
+def trade_select():
+    print("这是一个帮你寻找最佳货币的自定义函数")
+    # ***开发中*****敬请期待*******
+
+
+# 自定义的一个K线图查询工具
+def candle_stick(bit_name, sec, limit):
+    url_0 = "https://data.gateio.co/api2/1/candlestick2/"
+    hour = round(sec * limit / 3600, 1)
+    url = url_0 + bit_name + "_" + base_b + "?group_sec=" + str(sec) + "&range_hour=" + str(hour)
+    response = request.urlopen(url)
+    html = response.read()
+    html = json.loads(html.decode("utf-8"))
+    data = html['data']
+    trade_volume = []  # 交易量
+    trade_close = []  # 收盘
+    trade_high = []  # 最高
+    trade_low = []  # 最低
+    trade_open = []  # 开盘
+    trade_rise = []  # 涨幅
+    n = len(data)
+    for i in range(n):
+        trade_open.append(float(data[i][5]))
+        trade_high.append(float(data[i][3]))
+        trade_low.append(float(data[i][4]))
+        trade_close.append(float(data[i][2]))
+        trade_volume.append(float(data[i][1]))
+        trade_rise.append((trade_close[i] - trade_open[i])*100/trade_open[i])
+    return n, trade_open, trade_high, trade_low, trade_close, trade_volume, trade_rise
+
+
+def trade_star(bit_name,m):  # 鉴定是否买入,需要给出数字货币的名称
+    # 查询K线图
+    (n, trade_open, trade_high, trade_low, trade_close, trade_volume, trade_rise) = candle_stick(bit_name, m * 60, 15)
+    min_trade_close = min(trade_close)  # 先找到最低点
+    min_x = trade_close.index(min_trade_close)  # 标记最低点的位置
+    max_trade_close = max(trade_close)  # 再找到最高点
+    max_x = trade_close.index(max_trade_close)  # 标记最高点的位置
+    if min_x == 0 and max_x == n:
+        print("此时为快速上涨期，不宜卖出")
+        return "0"
+    if max_x == 0 and min_x == n:
+        print("此时为快速下跌期，不宜买入")
+        return "0"
+    # 考虑一下什么时候买入卖出呢？
+    # 肯定是满足√折点
+    # 买入的情况1：最新价比最低价高，比最高价小
+    if min_trade_close < trade_close[n-1] < max_trade_close:  # 防止最新价为最低价或者最高价
+        # 最低价左边有2连跌(最低收盘价本身也是跌)
+        if trade_rise[min_x-1] < 0 and trade_rise[min_x-2]:
+            # 最新价在最低价附近
+            if n-1-min_x < 3:
+                return "buy"
+    # 卖出的情况------------------------------------------------
+    if min_trade_close < trade_close[n - 1] < max_trade_close:  # 防止最新价为最低价或者最高价
+        # 最高价左边有3连涨
+        if trade_rise[max_x-1] > 0 and trade_rise[max_x-2] > 0 and trade_rise[max_x-3] > 0:
+            # 最新价在最高价附近
+            if n - 1 - max_x < 3:
+                return "sell"
+    else:
+        return "0"
+
+
+

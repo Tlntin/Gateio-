@@ -26,14 +26,14 @@ while True:
         (cost, cost_qc) = trade_cost_query()
         time.sleep(1)  # 等1秒
         # 查询基础信息
-        # 可用货币名称、数量、点卡、基础币数量、各类币种持仓成本
-        (b_name, b_num, point_num, base_b_num, b_trade_cost) = basic_query_fun()
-        # 持仓订单数，交易对名称，类型，单价，数量，总价，成交率，挂单状态
-        (order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate,
-         order_status) = orders_fun()
-        time.sleep(1)  # 等1秒
+        # 可用货币名称、数量、点卡、基础币总量、可用基础币、各类币种持仓成本
+        (b_name, b_num, point_num, base_b_num, base_b_mum_available2, b_trade_cost) = basic_query_fun()
         # 定义一个for循环，用于实时更新数据
         for i in range(10):
+            # 持仓订单数，交易对名称，类型，单价，数量，总价，成交率，挂单状态
+            (order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate,
+             order_status) = orders_fun()
+            time.sleep(1)  # 等1秒
             # 返回钱包总额(美元)，钱包总额（人民币），币种最近价格,可用基础货币
             (total_money, total_cny, b_price_last, base_b_mum_available) = total_money_query()
 
@@ -43,8 +43,7 @@ while True:
             profit_qz = profit - float(gate_query.ticker("gt_usdt")['last']) * free_b
             profit_qc_qz = profit_qc - float(gate_query.ticker("gt_usdt")['last']) * free_b
             # 开始生成html文件--------------------------------------------------
-            # GEN_HTML = "index.html"  # 路径准备
-            GEN_HTML = "/fakesite/gate/index.html"
+            GEN_HTML = "index.html"  # 路径准备
             # 获取刷新时间(以北京时间为准)
             fmt = '%Y-%m-%d %H:%M:%S %Z'
             d = datetime.datetime.now(pytz.timezone("Asia/Shanghai"))
@@ -70,39 +69,39 @@ while True:
         <h3>持币情况</h3>
         <table border="1" cellspacing="0">
               <tr>
-                <th width="100"; style="text-align: center">币种</th>  
+                <th width="62"; style="text-align: center">币种</th>  
             """ % (str_time, UserName, Vip_level, round(100*Maker, 3), round(100*Taker, 3))
             # 写入持有币种类别信息，不包括点卡和USDT
             for x in range(len(b_name)):
                 message1 = """
-                <td width="80"; style="text-align: center">%s</td>    
-                """ % (b_name[x])
+                <td width="80"; style="text-align: center"><a target="_blank" href="https://www.gateio.co/trade/%s_%s">%s</a></td>    
+                """ % (b_name[x],base_b, b_name[x])
                 message = message + message1
             # 写入币种数量信息
             message2 = """
             </tr>
             <tr>
-                <th width="100"; style="text-align: center">数量</th>
+                <th width="62"; style="text-align: center">数量</th>
             """
             message = message + message2
             # 写入币种数量
             for y in range(len(b_name)):
                 message3 = """
-                <td width="80"; style="text-align: center">%s</td>    
-                """ % (b_num[y])
+                <td width="80"; style="text-align: center">%.3f</td>    
+                """ % float(b_num[y])
                 message = message + message3
             # 写入持仓成本价
             message4 = """
             </tr>
             <tr>
-                <th width="100"; style="text-align: center">成本价</th>
+                <th width="62"; style="text-align: center">成本价</th>
             """
             message = message + message4
             print(b_trade_cost)
             # 写入持仓成本价格
             for m in range(len(b_name)):
                 message5 = """
-                <td width="80"; style="text-align: center">%.4f</td>    
+                <td width="80"; style="text-align: center">%.5f</td>    
                 """ % (b_trade_cost[m])
                 message = message + message5
 
@@ -110,20 +109,20 @@ while True:
             message6 = """
             </tr>
             <tr>
-                <th width="100"; style="text-align: center">最新价</th>
+                <th width="62"; style="text-align: center">最新价</th>
             """
             message = message + message6
             # 写入最新动态价格
             for n in range(len(b_name)):
                 message7 = """
-                <td width="80"; style="text-align: center">%.4f</td>    
+                <td width="80"; style="text-align: center">%.5f</td>    
                 """ % (b_price_last[n])
                 message = message + message7
             # 写入最新动态收益
             message8 = """
             </tr>
             <tr>
-                <th width="100"; style="text-align: center">收益</th>
+                <th width="62"; style="text-align: center">收益</th>
             """
             message = message + message8
             # 写入最新动态收益
@@ -134,14 +133,14 @@ while True:
                 """ % ((b_price_last[ii]-b_trade_cost[ii])*b_num[ii])
                 else:
                     message9 = """
-                <td width="80"; style="text-align: center">%.4f</td>    
+                <td width="80"; style="text-align: center">%.5f</td>    
                 """ % ((b_price_last[ii] - b_trade_cost[ii]) * b_num[ii])
                 message = message + message9
             # 写入动态收益率
             message10 = """
             </tr>
             <tr>
-                <th width="100"; style="text-align: center">收益率</th>
+                <th width="62"; style="text-align: center">收益率</th>
                 """
             message = message + message10
             # 写入最新动态收益
@@ -174,20 +173,20 @@ while True:
                     <th width="60" style="text-align: center">总价</th>
                     <th width="60" style="text-align: center">成交率</th>
                     <th width="70" style="text-align: center">状态</th>
-                </tr>
-                <tr>
                 """
                 message = message + message11_3
                 for xx in range(order_len):
                     message11_4 = """
-                    <td style="text-align: center">%s</td>
+                </tr>
+                <tr>
+                    <td style="text-align: center"><a target="_blank" href="https://www.gateio.co/trade/%s">%s</a></td>
                     <td style="text-align: center">%s</td>
                     <td style="text-align: center">%s</td>
                     <td style="text-align: center">%s</td>
                     <td style="text-align: center">%s</td>
                     <td style="text-align: center">%.2f%%</td>
                     <td style="text-align: center">%s</td>
-                """ % (order_name[xx], order_type[xx], str(initial_rate[xx]), str(initial_amount[xx]),
+                """ % (order_name[xx], order_name[xx], order_type[xx], str(initial_rate[xx]), str(initial_amount[xx]),
                        str(order_total[xx]), fill_rate[xx]*100, order_status[xx])
                     message = message + message11_4
             # 写入情况信息
@@ -223,6 +222,9 @@ while True:
                 <td width="80"; style="text-align: center">%.4f</td>
             </tr>
         </table>
+            <h3>推荐购买（beta）<h3>
+            <iframe src="index2.html" scrolling="No"   frameborder="0" ></iframe>
+
             <h3>开源链接</h3>
             <p>跳转<a target="_blank" href="https://github.com/Tlntin/Gateio-">github</a></p>
                     """ % (profit, profit_qz, profit_qc, profit_qc_qz)
