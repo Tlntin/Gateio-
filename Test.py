@@ -39,8 +39,6 @@ GEN_HTML = "index2.html"  # 路径准备
 
 while True:
     try:
-        (recommend_buy_5, recommend_sell_5) = test(5)  # 查询5分钟行情
-        # 写入推荐
         f = open(GEN_HTML, "w", encoding="utf-8")
         message = """
         <html>
@@ -72,46 +70,53 @@ while True:
                 </script>
             </head>
             <body>
-            <h4>5分钟推荐！</h4>
-            <推荐买入：%s>
-            <推荐卖出：%s>
-        """ % (recommend_buy_5, recommend_sell_5)
+        """ % 
         f.write(message)
         f.close()
         time.sleep(1)
 
         # 写入推荐
         (recommend_buy_15, recommend_sell_15) = test(15)  # 查询15分钟行情
-        f = open(GEN_HTML, "a", encoding="utf-8")
-        message2 = """
-            <h4>15分钟推荐！推荐买入：%s,&#9||&#9   推荐卖出：%s</h4>
-        """ % (recommend_buy_15, recommend_sell_15)
-        f.write(message2)
-        f.close()
-        (recommend_buy_30, recommend_sell_30) = test(30)  # 查询30分钟行情
+        if len(recommend_buy_15) != 0:
+            f = open(GEN_HTML, "a", encoding="utf-8")
+            message2 = """
+                <h4>15分钟推荐！</h4>
+                <p>推荐买入：%s</p>
+                <p>推荐卖出：%s</p>
+            """ % (recommend_buy_15, recommend_sell_15)
+            f.write(message2)
+            f.close()
 
-        # 写入推荐
-        f = open(GEN_HTML, "a", encoding="utf-8")
-        message3 = """
-            <h4>30分钟推荐！</h4>
-            <推荐买入：%s>
-            <推荐卖出：%s>
-        """ % (recommend_buy_30, recommend_sell_30)
-        f.write(message3)
-        f.close()
-        time.sleep(1)
+        (recommend_buy_30, recommend_sell_30) = test(30)  # 查询30分钟行情
+        if len(recommend_buy_30) != 0:
+            # 写入推荐
+            f = open(GEN_HTML, "a", encoding="utf-8")
+            message3 = """
+                <h4>30分钟推荐！</h4>
+                <p>推荐买入：%s</p>
+                <p>推荐卖出：%s</p>
+            """ % (recommend_buy_30, recommend_sell_30)
+            f.write(message3)
+            f.close()
+            time.sleep(1)
         # 写入推荐
         (recommend_buy_60, recommend_sell_60) = test(60)  # 查询60分钟行情
-        f = open(GEN_HTML, "a", encoding="utf-8")
-        message4 = """
-            <h4>60分钟推荐！</h4>
-            <推荐买入：%s>
-            <推荐卖出：%s>
+        if len(recommend_buy_60) != 0:
+            f = open(GEN_HTML, "a", encoding="utf-8")
+            message4 = """
+                <h4>60分钟推荐！</h4>
+                <p>推荐买入：%s</p>
+                <p>推荐卖出: %s</p>
+            """ % (recommend_buy_60, recommend_sell_60)
+            f.write(message4)
+            f.close()
+            time.sleep(1)
+        message5 = """
             <body>
         </html>
-        """ % (recommend_buy_60, recommend_sell_60)
-        f.write(message4)
+        """
+        f = open(GEN_HTML, "a", encoding="utf-8")
+        f.write(message5)
         f.close()
-        time.sleep(1)
     except IOError:
         print(IOError)

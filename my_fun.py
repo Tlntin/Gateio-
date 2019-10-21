@@ -269,15 +269,15 @@ def trade_star(bit_name,m):  # 鉴定是否买入,需要给出数字货币的名
     if min_trade_close < trade_close[n-1] < max_trade_close:  # 防止最新价为最低价或者最高价
         # 最低价左边有2连跌(最低收盘价本身也是跌)
         if trade_rise[min_x-1] < 0 and trade_rise[min_x-2]:
-            # 最新价在最低价附近
-            if n-1-min_x < 3:
+            # 最新价在最低价附近,最低价右边涨的比左边多
+            if n-1-min_x <= 3 and trade_rise[min_x+1] > abs(trade_rise[min_x]):
                 return "buy"
     # 卖出的情况------------------------------------------------
     if min_trade_close < trade_close[n - 1] < max_trade_close:  # 防止最新价为最低价或者最高价
         # 最高价左边有3连涨
         if trade_rise[max_x-1] > 0 and trade_rise[max_x-2] > 0 and trade_rise[max_x-3] > 0:
-            # 最新价在最高价附近
-            if n - 1 - max_x < 3:
+            # 最新价在最高价附近,跌的比涨的多
+            if n - 1 - max_x <= 3 and abs(trade_rise[max_x+1]) > trade_rise[min_x]:
                 return "sell"
     else:
         return "0"
