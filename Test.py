@@ -39,6 +39,7 @@ GEN_HTML = "index2.html"  # 路径准备
 
 while True:
     try:
+        # 写入推荐
         f = open(GEN_HTML, "w", encoding="utf-8")
         message = """
         <html>
@@ -70,7 +71,7 @@ while True:
                 </script>
             </head>
             <body>
-        """ % 
+        """
         f.write(message)
         f.close()
         time.sleep(1)
