@@ -25,7 +25,7 @@ def test(m):
     b_name_len = len(all_coin)
     recommend_buy = []  # 推荐买入的币种
     recommend_sell = []  # 推荐卖出的币种
-    for i in range(100):  # 查询前100
+    for i in range(60):  # 查询前60
         data = trade_star(all_coin[i], m)  # 查询分钟行情
         if data == "buy":
             recommend_buy.append(all_coin[i])

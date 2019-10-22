@@ -24,19 +24,20 @@ while True:
     try:
         # 从订单表中查询总支出、总支出含手续费
         (cost, cost_qc) = trade_cost_query()
-        time.sleep(1)  # 等1秒
+        time.sleep(2)  # 等1秒
         # 查询基础信息
         # 可用货币名称、数量、点卡、基础币总量、可用基础币、各类币种持仓成本
         (b_name, b_num, point_num, base_b_num, base_b_mum_available2, b_trade_cost) = basic_query_fun()
+        time.sleep(2)  # 等1秒
         # 定义一个for循环，用于实时更新数据
-        for i in range(10):
+        for i in range(3):
             # 持仓订单数，交易对名称，类型，单价，数量，总价，成交率，挂单状态
             (order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate,
              order_status) = orders_fun()
-            time.sleep(1)  # 等1秒
+            time.sleep(2)  # 等2秒
             # 返回钱包总额(美元)，钱包总额（人民币），币种最近价格,可用基础货币
             (total_money, total_cny, b_price_last, base_b_mum_available) = total_money_query()
-
+            time.sleep(2)  # 等2秒
             # 总利润=商品折算后的总金额-商品订单总成本(不考虑手续费)=总金额 - 基础代币- 订单总成本
             profit = total_money - base_b_num - cost
             profit_qc = total_money - base_b_num - cost_qc
@@ -223,7 +224,7 @@ while True:
             </tr>
         </table>
             <h3>推荐购买（beta）<h3>
-            <iframe src="index2.html" scrolling="No"   frameborder="0" ></iframe>
+            <iframe src="index2.html" width="450"  frameborder="0" ></iframe>
 
             <h3>开源链接</h3>
             <p>跳转<a target="_blank" href="https://github.com/Tlntin/Gateio-">github</a></p>
@@ -259,6 +260,6 @@ while True:
             f.close()
             print("写入html完毕")
             time.sleep(refresh_time)
-    except IOError:
-        print(IOError)
+    except Exception as err:
+        print(err)
 # 循环结束-----------------------------------------
