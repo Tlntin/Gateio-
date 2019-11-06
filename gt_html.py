@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from gateAPI import GateIO
 import time
+import random
 import datetime
 import pytz
 from User_input import user_info
@@ -27,21 +28,25 @@ while True:
         time.sleep(2)  # 等1秒
         # 查询基础信息
         # 可用货币名称、数量、点卡、基础币总量、可用基础币、各类币种持仓成本
-        (b_name, b_num, point_num, base_b_num, base_b_mum_available2, b_trade_cost) = basic_query_fun()
+        (b_name, b_num, point_num, base_b_num, base_b_mum_available2, b_trade_cost, btc_num) = basic_query_fun()
         time.sleep(2)  # 等1秒
         # 定义一个for循环，用于实时更新数据
-        for i in range(3):
+        for i in range(2):
             # 持仓订单数，交易对名称，类型，单价，数量，总价，成交率，挂单状态
             (order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate,
              order_status) = orders_fun()
-            time.sleep(2)  # 等2秒
+            time.sleep(random.randint(2, 6))  # 等2-6秒
             # 返回钱包总额(美元)，钱包总额（人民币），币种最近价格,可用基础货币
             (total_money, total_cny, b_price_last, base_b_mum_available) = total_money_query()
-            time.sleep(2)  # 等2秒
-            # 总利润=商品折算后的总金额-商品订单总成本(不考虑手续费)=总金额 - 基础代币- 订单总成本
-            profit = total_money - base_b_num - cost
-            profit_qc = total_money - base_b_num - cost_qc
+            # 计算不含比特币的钱包总量
+            time.sleep(random.randint(2, 6))  # 等2-6秒
+            # 总利润=商品折算后的总金额-商品订单总成本(不考虑手续费)=总金额 - 基础代币- 订单总成本 + 比特币数量
+            profit = total_money - base_b_num - cost + btc_num*float(gate_query.ticker('BTC_USDT')['last'])
+            time.sleep(random.randint(2, 6))  # 等2-5秒
+            profit_qc = total_money - base_b_num - cost_qc + btc_num*float(gate_query.ticker('BTC_USDT')['last'])
+            time.sleep(random.randint(1, 2))  # 等1-2秒
             profit_qz = profit - float(gate_query.ticker("gt_usdt")['last']) * free_b
+            time.sleep(random.randint(1, 2))  # 等1-2秒
             profit_qc_qz = profit_qc - float(gate_query.ticker("gt_usdt")['last']) * free_b
             # 开始生成html文件--------------------------------------------------
             GEN_HTML = "index.html"  # 路径准备
@@ -88,7 +93,7 @@ while True:
             # 写入币种数量
             for y in range(len(b_name)):
                 message3 = """
-                <td width="80"; style="text-align: center">%.3f</td>    
+                <td width="80"; style="text-align: center">%.4f</td>    
                 """ % float(b_num[y])
                 message = message + message3
             # 写入持仓成本价
@@ -100,7 +105,7 @@ while True:
             message = message + message4
             print(b_trade_cost)
             # 写入持仓成本价格
-            for m in range(len(b_name)):
+            for m in range(len(b_trade_cost)):
                 message5 = """
                 <td width="80"; style="text-align: center">%.5f</td>    
                 """ % (b_trade_cost[m])
@@ -127,7 +132,7 @@ while True:
             """
             message = message + message8
             # 写入最新动态收益
-            for ii in range(len(b_name)):
+            for ii in range(len(b_trade_cost)):
                 if b_price_last[ii]-b_trade_cost[ii] < 0:
                     message9 = """
                 <td width="80"; style="text-align: center"><font color="red">%.4f</font></td>    
@@ -145,8 +150,13 @@ while True:
                 """
             message = message + message10
             # 写入最新动态收益
-            for xx in range(len(b_name)):
-                if ((b_price_last[xx] / b_trade_cost[xx])-1) < 0:
+            for xx in range(len(b_trade_cost)):
+                if b_trade_cost[xx] == 0:
+                    message11 = """
+                <td width="80"; style="text-align: center"><font color="red">/</font></td>    
+                    """
+                    continue
+                elif ((b_price_last[xx] / b_trade_cost[xx])-1) < 0:
                     message11 = """
                 <td width="80"; style="text-align: center"><font color="red">%.2f%%</font></td>    
                 """ % (((b_price_last[xx] / b_trade_cost[xx])-1)*100)
@@ -195,9 +205,10 @@ while True:
             </tr>
         </table>
         <p>目前钱包总额为：<strong>%.2f</strong>(美元折算) &#9||&#9 <strong>%.2f</strong>(人民币折算)</p>
+        <p>比特币数量：<strong>%.4f</strong></p>
         <p>点卡数量: <strong>%.2f</strong></p>
         <p>总的%s数量：<strong>%.2f</strong>&#9||&#9可用%s数量：<strong>%.2f</strong></p>
-        """ % (total_money, total_cny, point_num, base_b, base_b_num, base_b,base_b_mum_available)
+        """ % (total_money, total_cny, btc_num, point_num, base_b, base_b_num, base_b, base_b_mum_available)
             message = message + message12
             # 开始计算累计收益
             message13 = """
@@ -260,6 +271,6 @@ while True:
             f.close()
             print("写入html完毕")
             time.sleep(refresh_time)
-    except Exception as err:
-        print(err)
+    except IOError:
+        print(IOError)
 # 循环结束-----------------------------------------

@@ -4,6 +4,7 @@ from User_input import user_info
 from User_input import other_info
 from my_fun import trade_star
 import time
+import random
 # 获取用户信息
 (apiKey, secretKey, btcAddress, API_QUERY_URL, API_TRADE_URL) = user_info()
 (UserName, free_b, loced_type, loced_num, Vip_level, refresh_time, base_b) = other_info()
@@ -31,6 +32,9 @@ def test(m):
             recommend_buy.append(all_coin[i])
         if data == "sell":
             recommend_sell.append(all_coin[i])
+        s = i + 1
+        print("共有60种币种，正在查询第%d种货币" % s)
+        time.sleep(random.random())
     print("输出完成")
     return recommend_buy, recommend_sell
 
@@ -75,32 +79,8 @@ while True:
         f.write(message)
         f.close()
         time.sleep(1)
-
         # 写入推荐
-        (recommend_buy_15, recommend_sell_15) = test(15)  # 查询15分钟行情
-        if len(recommend_buy_15) != 0:
-            f = open(GEN_HTML, "a", encoding="utf-8")
-            message2 = """
-                <h4>15分钟推荐！</h4>
-                <p>推荐买入：%s</p>
-                <p>推荐卖出：%s</p>
-            """ % (recommend_buy_15, recommend_sell_15)
-            f.write(message2)
-            f.close()
-
-        (recommend_buy_30, recommend_sell_30) = test(30)  # 查询30分钟行情
-        if len(recommend_buy_30) != 0:
-            # 写入推荐
-            f = open(GEN_HTML, "a", encoding="utf-8")
-            message3 = """
-                <h4>30分钟推荐！</h4>
-                <p>推荐买入：%s</p>
-                <p>推荐卖出：%s</p>
-            """ % (recommend_buy_30, recommend_sell_30)
-            f.write(message3)
-            f.close()
-            time.sleep(1)
-        # 写入推荐
+        print("开始查询60分钟")
         (recommend_buy_60, recommend_sell_60) = test(60)  # 查询60分钟行情
         if len(recommend_buy_60) != 0:
             f = open(GEN_HTML, "a", encoding="utf-8")
@@ -111,7 +91,38 @@ while True:
             """ % (recommend_buy_60, recommend_sell_60)
             f.write(message4)
             f.close()
-            time.sleep(1)
+        print("查询60分钟结束")
+        time.sleep(60)  # 等1分钟
+        for i in range(2):
+            print("开始查询30分钟%d" % i)
+            (recommend_buy_30, recommend_sell_30) = test(30)  # 查询30分钟行情
+            if len(recommend_buy_30) != 0:
+                # 写入推荐
+                f = open(GEN_HTML, "a", encoding="utf-8")
+                message3 = """
+                <h4>30分钟推荐！</h4>
+                <p>推荐买入：%s</p>
+                <p>推荐卖出：%s</p>
+                """ % (recommend_buy_30, recommend_sell_30)
+                f.write(message3)
+                f.close()
+                time.sleep(60)  # 等60秒
+            print("查询30分钟结束%d" % i)
+            for x in range(2):
+                # 写入推荐
+                print("开始查询15分钟第%d次" % x)
+                (recommend_buy_15, recommend_sell_15) = test(15)  # 查询15分钟行情
+                if len(recommend_buy_15) != 0:
+                    f = open(GEN_HTML, "a", encoding="utf-8")
+                    message2 = """
+                <h4>15分钟推荐！</h4>
+                <p>推荐买入：%s</p>
+                <p>推荐卖出：%s</p>
+                    """ % (recommend_buy_15, recommend_sell_15)
+                    f.write(message2)
+                    f.close()
+                print("查询15分钟完成%d次" % x)
+                time.sleep(600)  # 等10分钟
         message5 = """
             <body>
         </html>

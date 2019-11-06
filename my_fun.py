@@ -4,6 +4,8 @@ import json
 from User_input import user_info
 from User_input import other_info
 from urllib import request
+import time
+import random
 
 # 获取用户信息
 (apiKey, secretKey, btcAddress, API_QUERY_URL, API_TRADE_URL) = user_info()
@@ -87,10 +89,10 @@ def total_money_query():  # 定义一个计算钱包总额，以及各类货币�
     base_b_num = 0.0  # 基础货币总数
     base_b_mum_available = 0.0  # 可用基础货币
     for i in range(key_types):
-        if money_key_available[i] != 'POINT' and money_key_available[i] != base_b:
+        if money_key_available[i] not in ['POINT', base_b, 'BTC']:
             if money_num_all[i] != 0.0:
                 b_name.append(money_key_available[i])
-                b_num.append(money_num_all[i])
+                b_num.append(float(money_num_all[i]))
 
         if money_key_available[i] == base_b:
             base_b_num = money_num_all[i]
@@ -143,16 +145,19 @@ def basic_query_fun():  # 自定义一个基础查询函数
     point_num = 0.0  # 初始点卡数量为0.0
     base_b_num = 0.0  # 基础货币数量为0.0
     base_b_mum_available2 = 0.0  # 可用基础货币
+    btc_num = 0.0
     for i in range(key_types):
-        if money_key_available[i] != 'POINT' and money_key_available[i] != base_b:
+        if money_key_available[i] not in ['POINT', base_b, 'BTC']:
             if money_num_all[i] != 0.0:
                 b_name.append(money_key_available[i])
-                b_num.append(money_num_all[i])
+                b_num.append(float(money_num_all[i]))
 
         if money_key_available[i] == 'POINT':
-            point_num = money_num_all[i]
+            point_num = float(money_num_all[i])
+        if money_key_available[i] == 'BTC':
+            btc_num = float(money_num_all[i])
         if money_key_available[i] == base_b:
-            base_b_num = money_num_all[i]
+            base_b_num = float(money_num_all[i])
             base_b_mum_available2 = float(money_num_available[i])
     b_types = len(b_name)  # 持仓币种数量
 
@@ -173,13 +178,30 @@ def basic_query_fun():  # 自定义一个基础查询函数
             else:  # 假设为卖出
                 b_trade_amount = b_trade_amount - float(data_trade[y]['amount'])  # 计算累计持有的币的数量
                 cost_1 = cost_1 - float(data_trade[y]['total']) * (1 - Maker)  # 卖出则动态成本减少
-
-            if round(b_trade_amount, 6) == round(b_num[m], 6):  # 增加取6位小数操作，防止小数点过多引起误差
-                cost_last = cost_1 / b_trade_amount  # 单个币种的动态成本 / 单个币种的持币数量
+            # 只要满足订单累计成本为正，且订单累计数量与目前的持仓数量近似
+            if cost_1 > 0 and -0.0001 <= round(b_num[m], 4) - round(b_trade_amount, 4) <= 0.001:  # 精度降低为4位，防红包
+                cost_last = cost_1 / b_trade_amount
                 b_trade_cost.append(round(cost_last, 4))  # 添加持仓成本到数组
-                break  # 退出该循环，不需进行下面的操作，防止偶然性的满足if要求
-    # 返回可用货币名称、数量、点卡、基础币总量、可用基础币、各类币种持仓成本
-    return b_name, b_num, point_num, base_b_num, base_b_mum_available2, b_trade_cost
+                break
+        # 如果循环结束还没找到成本价，那就以最后一个价格为成本价
+        else:
+            cost_last = cost_1 / b_trade_amount
+            z = 1
+            # 如果持仓成本小于零则进入循环
+            while cost_last <= 0:
+                if data_trade[y-z]['type'] == 'sell':
+                    cost_1 = cost_1 + float(data_trade[y-z]['total']) * (1 - Maker)  # 加上上一笔卖的收入
+                    b_trade_amount = b_trade_amount + float(data_trade[y-z]['amount'])  # 加上最后一笔卖的数量
+                    cost_last = cost_1 / b_trade_amount  # 重新计算持仓成本
+                else:
+                    cost_1 = cost_1 - float(data_trade[y-z]['total']) * (1 + Maker)  # 减去上一笔买的支出
+                    b_trade_amount = b_trade_amount - float(data_trade[y-z]['amount'])  # 减去上一笔买的数量
+                    cost_last = cost_1 / b_trade_amount  # 重新计算持仓成本
+                z = z + 1
+            b_trade_cost.append(round(cost_last, 4))  # 添加持仓成本到数组
+    time.sleep(random.randint(2, 6))  # 休息2-6秒
+    # 返回可用货币名称、数量、点卡、基础币总量、可用基础币、各类币种持仓成本,比特币数量
+    return b_name, b_num, point_num, base_b_num, base_b_mum_available2, b_trade_cost, btc_num
 
 
 def orders_fun():  # 挂单状态函数
@@ -250,7 +272,7 @@ def candle_stick(bit_name, sec, limit):
     return n, trade_open, trade_high, trade_low, trade_close, trade_volume, trade_rise
 
 
-def trade_star(bit_name,m):  # 鉴定是否买入,需要给出数字货币的名称
+def trade_star(bit_name, m):  # 鉴定是否买入,需要给出数字货币的名称
     # 查询K线图
     (n, trade_open, trade_high, trade_low, trade_close, trade_volume, trade_rise) = candle_stick(bit_name, m * 60, 15)
     min_trade_close = min(trade_close)  # 先找到最低点
@@ -259,28 +281,47 @@ def trade_star(bit_name,m):  # 鉴定是否买入,需要给出数字货币的名
     max_x = trade_close.index(max_trade_close)  # 标记最高点的位置
     if min_x == 0 and max_x == n:
         print("此时为快速上涨期，不宜卖出")
-        return "0"
+        return None
     if max_x == 0 and min_x == n:
         print("此时为快速下跌期，不宜买入")
-        return "0"
+        return None
     # 考虑一下什么时候买入卖出呢？
     # 肯定是满足√折点
     # 买入的情况1：最新价比最低价高，比最高价小
     if min_trade_close < trade_close[n-1] < max_trade_close:  # 防止最新价为最低价或者最高价
-        # 最低价左边有2连跌(最低收盘价本身也是跌)
-        if trade_rise[min_x-1] < 0 and trade_rise[min_x-2]:
-            # 最新价在最低价附近,最低价右边涨的比左边多
+        # 最低价左边有2连跌(最低收盘价本身也是跌)，收盘价一直再变小
+        if trade_rise[min_x-1] < 0 and trade_rise[min_x-2] < 0 and trade_close[min_x-1] < trade_close[min_x-2]:
+            # 最新价在最低价附近,最低价右边涨的比左边多，并且最新价为涨
             if n-1-min_x <= 3 and trade_rise[min_x+1] > abs(trade_rise[min_x]):
-                return "buy"
+                if trade_rise[n-1] > 0:
+                    return "buy"
     # 卖出的情况------------------------------------------------
     if min_trade_close < trade_close[n - 1] < max_trade_close:  # 防止最新价为最低价或者最高价
-        # 最高价左边有3连涨
-        if trade_rise[max_x-1] > 0 and trade_rise[max_x-2] > 0 and trade_rise[max_x-3] > 0:
-            # 最新价在最高价附近,跌的比涨的多
-            if n - 1 - max_x <= 3 and abs(trade_rise[max_x+1]) > trade_rise[min_x]:
-                return "sell"
+        # 最高价左边有2连涨,收盘价比原来高
+        if trade_rise[max_x-1] > 0 and trade_rise[max_x-2] > 0 and trade_close[max_x-1] > trade_close[max_x-2]:
+            # 最新价在最高价附近,跌的比涨的多,并且最新价为跌
+            if n - 1 - max_x <= 3 and abs(trade_rise[max_x+1]) > trade_rise[max_x]:
+                if trade_rise[n-1] < 0:  # 最新价为跌
+                    return "sell"
     else:
-        return "0"
+        return None
+
+# 定义一个查询小数后几位的函数
+
+
+def decimal_num(number):
+    num = 1
+    while number * 10 ** num != int(number * 10 ** num):
+        num += 1
+    return num
+# 定义一个增加小数位后0.03的函数
+
+
+def func2(num, t):
+    n = decimal_num(num)
+    s_sum = num + 10**(-n)*t
+    s_sum = round(s_sum, n)  # 取n位小数
+    return s_sum
 
 
 
