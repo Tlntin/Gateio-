@@ -1,7 +1,6 @@
-import json
 import hashlib
 import hmac
-from urllib import parse,request
+import requests
 
 
 def get_sign(params, secret_key):
@@ -32,9 +31,7 @@ def http_get(base_url, resource, params=''):
     :return:返回请求结果
     """
     url = base_url + resource + '/' + params
-    res = request.urlopen(url, timeout=15)
-    data = res.read().decode('utf-8')
-    data = json.loads(data)
+    data = requests.get(url).json()
     return data
 
 
@@ -54,11 +51,27 @@ def http_post(base_url, resource, params, api_key, secret_key):
         "SIGN": get_sign(params, secret_key)
     }
     url = base_url + resource
-    temp_params = parse.urlencode(params).encode()
-    req = request.Request(url=url, headers=headers, data=temp_params)
-    res = request.urlopen(req, timeout=15)
-    data = res.read().decode('utf-8')
-    data = json.loads(data)
+    data = requests.post(data=params, headers=headers, url=url).json()
+    return data
+
+
+def http_post2(base_url, resource, params, api_key, secret_key):
+    """
+    构建http post 请求
+    :param base_url: 请求的主域名
+    :param resource: 请求的二级域名资源
+    :param params: 需要post的请求数据
+    :param api_key: api_key
+    :param secret_key: 私钥
+    :return: 返回一个posst请求
+    """
+    headers = {
+        "Content-type": "application/x-www-form-urlencoded",
+        "KEY": api_key,
+        "SIGN": get_sign(params, secret_key)
+    }
+    url = base_url + resource
+    data = requests.get(data=params, headers=headers, url=url).json()
     return data
 
 
@@ -184,11 +197,12 @@ class GateIO:
         params = {}
         return http_post(self.__url, url2, params, self.__api_key, self.__secret_key)
 
-    # 获取我的24小时内成交记录
+    # 获取24小时成交记录
     def mytradeHistory(self, currencyPair, orderNumber):
         url2 = "/api2/1/private/tradeHistory"
         params = {'currencyPair': currencyPair, 'orderNumber': orderNumber}
         return http_post(self.__url, url2, params, self.__api_key, self.__secret_key)
+
 
     # 提现
     def withdraw(self, currency, amount, address):
