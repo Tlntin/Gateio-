@@ -5,7 +5,7 @@
 3. python3环境一个
 ### 2.如何运行
 1. 先修改User_input.py，改成自己的信息
-2. 运行gate_html.py即可生成html文档
+2. 运行creat_html.py即可生成html文档
 3. 运行gate_will.py即可生成币种预测信息
 4. 运行stock.py即可生成股票预测信息，股票内容可以自行修改
 ### 3.作者说明
@@ -26,6 +26,6 @@
 12. 累计收益
 13. 根据走势自动交易（这个不开源，自行完善）
 ### 5.效果图
-![](https://github.com/Tlntin/Gateio-/blob/master/png/001.png)
-![](https://github.com/Tlntin/Gateio-/blob/master/png/002.png)  
-![](https://github.com/Tlntin/Gateio-/blob/master/png/003.png) 
+![](./png/效果图.jpg)
+![](./png/002.png)  
+![](./png/003.png) 
