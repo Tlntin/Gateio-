@@ -16,8 +16,6 @@ if __name__ == '__main__':
     b = a + '/' + 'data'
     if not os.path.exists(b):
         os.mkdir(b)
-    # 获取vip等级
-    maker, taker = vip_fun(vip_level)
     while True:
         func_basic()  # 查询买过的货币
         fun_all_bitcoin()  # 查询当前可用货币
@@ -44,8 +42,7 @@ if __name__ == '__main__':
             profit_qc = total_money - 700  # 不考虑点卡
             profit_qc_qz = profit_qc - free_b * free_b_price  # 不考虑点卡不考虑赠币
             print("开始写入html")
-            # GEN_HTML = "./data/index.html"  # 路径准备
-            GEN_HTML = "/www/wwwroot/www.vbahome.cn/gate/index.html"
+            GEN_HTML = "./data/index.html"  # 路径准备
             # 获取刷新时间(以北京时间为准)
             fmt = '%Y-%m-%d %H:%M:%S %Z'
             d = datetime.datetime.now(pytz.timezone("Asia/Shanghai"))
@@ -191,7 +188,7 @@ if __name__ == '__main__':
 </html>
             """
             f.write(message_foot)
-            print('写入html成功', '\n')
+            print('写入html成功, 写入时间：', str_time, '\n')
             f.close()
             time.sleep(5)
             print('更新币种价格，比较慢，请耐心等待')
