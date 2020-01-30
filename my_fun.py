@@ -1,8 +1,12 @@
 from user_input import user_info, other_info
 from gate_api import GateIO
+import time
+import os
+import pandas as pd
+import numpy as np
 # 获取用户信息
 (api_key, secret_key, btc_address, query_url, trade_url) = user_info()
-(user_name, free_b, locked_type, loced_num, vip_level, refresh_time, base_b) = other_info()
+(user_name, free_b, locked_type, locked_num, vip_level, refresh_time, base_b) = other_info()
 
 # 创建连接
 gate_query = GateIO(query_url, api_key, secret_key)  # 查询连接
@@ -54,23 +58,32 @@ def func_basic():
     创建一个基础查询函数
     :return: 返回总的货币数量，可用货币数量，总的货币名称
     """
-    # 获取帐号资金余额
-    date = gate_trade.balances()
-    total_money1 = date["available"]  # 可用数字货币
-    total_money0 = date["locked"]  # 锁定数字货币
-    # 可交易货币
-    money_key_available = list(total_money1.keys())
-    money_num_available = list(total_money1.values())
-    key_types = len(money_key_available)
+    try:
+        # 获取帐号资金余额
+        date = gate_trade.balances()
+        total_money1 = date["available"]  # 可用数字货币
+        total_money0 = date["locked"]  # 锁定数字货币
+        # 可交易货币
+        money_key_available = list(total_money1.keys())
+        money_num_available = list(total_money1.values())
+        key_types = len(money_key_available)
 
-    # 不可交易货币(处于挂单状态中，暂时不可交易)
-    money_num_locked = list(total_money0.values())
+        # 不可交易货币(处于挂单状态中，暂时不可交易)
+        money_num_locked = list(total_money0.values())
 
-    # 总货币数量
-    money_num_all = []
-    for i in range(key_types):
-        money_num_all.append(float(money_num_available[i]) + float(money_num_locked[i]))  # 将挂单中的币数量加上去
-    return money_num_all, money_num_available, money_key_available
+        # 总货币数量
+        money_num_all = []
+        for i in range(key_types):
+            money_num_all.append(float(money_num_available[i]) + float(money_num_locked[i]))  # 将挂单中的币数量加上去
+        my_dict = {}
+        my_dict['货币名称'] = money_key_available
+        my_dict['货币总量'] = money_num_all
+        my_dict['可用数量'] = money_num_available
+        df = pd.DataFrame({'货币名称': money_key_available, '货币数量': money_num_all, '可交易数量': money_num_available})
+        df.to_csv('./data/买过的货币.csv', encoding='utf-8', index=None)
+    except Exception as err:
+        print(err)
+        time.sleep(5)
 
 
 def fun_all_bitcoin():
@@ -78,17 +91,12 @@ def fun_all_bitcoin():
     定义一个计算所有持仓币种的函数
     :return: 持仓币种名称，持仓币种数量，总基础货币，可用基础货币
     """
-    (money_num_all, money_num_available, money_key_available) = func_basic()
-    key_types = len(money_key_available)
-    b_name = []  # 创建数组用于储存可用数字货币名称
-    b_num = []  # 创建数组用于储存可用数字货币数量
-    for i in range(key_types):
-        # 去除货币中的点卡 、USDT、以及数量为零的可用货币
-        if money_key_available[i] not in ['POINT', base_b]:
-            if money_num_all[i] >= 0.001:  # 大于0.001才录入
-                b_name.append(money_key_available[i])
-                b_num.append(money_num_all[i])
-    return b_name, b_num
+    df = pd.read_csv('./data/买过的货币.csv', encoding='utf-8')
+    a = df[df['货币名称'].isin(['POINT', 'USDT'])].index.values  # 删除点卡和USDT
+    df.drop(a, inplace=True)
+    b = df[df['货币数量'] < 0.001].index.values  # 删除货币数量小于0.001的币种
+    df.drop(b, inplace=True)
+    df.to_csv('./data/当前可用货币.csv', encoding='utf-8-sig', index=None)
 
 
 def func_base_b():
@@ -96,141 +104,124 @@ def func_base_b():
     定义一个函数用于查询基础货币余额的
     :return:返回总的基础币，可用基础币
     """
-    (money_num_all, money_num_available, money_key_available) = func_basic()
-    key_types = len(money_key_available)
-    base_b_num = 0.0  # 总基础货币
-    base_b_mum_available = 0.0  # 可用基础货币
-    point_num = 0.0  # 可用点卡数量
-    btc_num = 0.0
-    for i in range(key_types):
-        if money_key_available[i] == base_b:
-            base_b_num = float(money_num_all[i])
-            base_b_mum_available = float(money_num_available[i])
-        if money_key_available[i] == 'POINT':
-            point_num = float(money_num_all[i])
-
-        if money_key_available[i] == 'BTC':
-            btc_num = float(money_num_all[i])
+    df = pd.read_csv('./data/买过的货币.csv', encoding='utf-8')
+    base_b_num = df[df['货币名称'] == base_b]['货币数量'].values[0]
+    base_b_mum_available = df[df['货币名称'] == base_b]['可交易数量'].values[0]
+    point_num = df[df['货币名称'] == 'POINT']['货币数量'].values[0]
+    btc_num = df[df['货币名称'] == 'BTC']['货币数量'].values[0]
     return base_b_num, base_b_mum_available, point_num, btc_num
 
 
-def trade_cost_query():
+def query_price():
     """
-    定义一个查询支出的函数,暂未考虑持币总额
-    注意：这个函数消耗比较大，建议不要经常运行
-    :return:返回总成本，总成本去除手续费
+    此函数用于查询币种价格，并且储存
+    :return:
     """
-    # 获取帐号资金余额
-    date = gate_trade.balances()
-    total_money1 = date["available"]  # 数字货币
-    # 获取vip等级
-    maker, taker = vip_fun(vip_level)
-    # 可用货币
-    money_key_available = list(total_money1.keys())
-    b_name_all = money_key_available
-    b_name_all.remove('POINT')
-    b_name_all.remove(base_b)
-    b_types_all = len(b_name_all)  # 计算所有币种
-    cost = 0.0  # 初始支出为零,此时币种全为USDT
-    cost_qc = 0.0  # 初始支出（去手续费）为零，币种只有USDT
-    for z in range(b_types_all):
-        data_1 = gate_trade.mytradeHistory(b_name_all[z] + "_" + base_b, "")  # 订单号留空,查询成功后转json字典
-        data_trade_1 = data_1['trades']  # 提取交易信息
-        data_trade_len_1 = len(data_trade_1)  # 计算交易信息长度
-        for ii in range(data_trade_len_1):  # 遍历交易信息历史记录
-            if data_trade_1[ii]['type'] == 'buy':  # 假设为买入
-                cost = cost + float(data_trade_1[ii]['total'])  # 订单总支出增加
-                cost_qc = cost_qc + float(data_trade_1[ii]['total']) * (1 + taker)  # 附加的手续费
-            else:  # 假设为卖出
-                cost = cost - float(data_trade_1[ii]['total'])  # 订单总支出减少
-                cost_qc = cost_qc - float(data_trade_1[ii]['total']) * (1 - maker)  # 附加的手续费
-    cost = cost - float(gate_query.ticker(locked_type + "_" + base_b)['last']) * loced_num
-    cost_qc = cost_qc - float(gate_query.ticker(locked_type + "_" + base_b)['last']) * loced_num
-    # 返回订单总支出
-    return cost, cost_qc
+    df = pd.read_csv('./data/当前可用货币.csv', encoding='utf-8')
+    b_name_list = df['货币名称'].values.tolist()
+    try:
+        b_name_price = [float(gate_query.ticker(b_name + '_' + base_b)['last']) for b_name in b_name_list]
+        df['货币价格'] = b_name_price
+        df.to_csv('./data/当前可用货币.csv', encoding='utf-8-sig', index=None)
+    except Exception as err:
+        print(err)
+        time.sleep(5)
+        query_price()  # 重新执行
 
 
 def get_total_money():
     """
     用于计算钱包总额,以及币种最近价格
     这个函数也比较消耗资源，建议不要长期使用
-    :return: 返回钱包总额(美元)，钱包总额（人民币），币种最近价格
+    :return: 返回钱包总额(美元)，钱包总额（人民币）
     """
-    # 获取可用货币名称以及数量
-    b_name, b_num = fun_all_bitcoin()
-    b_types = len(b_name)
-    # 获取总的稳定币数量
-    base_b_num, base_b_mum_available, point_num, btc_num = func_base_b()
-    # 计算钱包余额--------------------------------------------------------
-    b_price_last = []  # 建立数组储存币种最近的价格
-    total_money = 0.00  # 钱包总余额
-    query_b = []  # 待查询的币种交易对
-    b_hold = []  # 总持仓
-    for n in range(b_types):
-        query_b.append(b_name[n] + "_" + base_b)  # 查询的币种交易对
-        b_price_last.append(float(gate_query.ticker(query_b[n])['last']))  # 查询币种最近的价格,并且储存
-        b_hold.append(b_price_last[n] * b_num[n])  # 计算总持仓
-        total_money = total_money + b_price_last[n] * b_num[n]  # 币种最近的价格乘以数量则为可用余额
-
+    df = pd.read_csv('./data/当前可用货币.csv', encoding='utf-8')
+    df2 = pd.read_csv('./data/买过的货币.csv', encoding='utf-8')
+    total_money = (df['货币数量'] * df['货币价格']).sum()
+    base_b_num = df2[df2['货币名称'] == base_b]['货币数量'].values[0]
+    free_b_price = df[df['货币名称'] == 'GT']['货币价格'].values[0]
     # 计算完后还需要加上基础货币(USDT)的数量---------------------------------
-    total_money = total_money + base_b_num  # 计算总资产
-
+    total_money = round(total_money + base_b_num, 2)  # 计算总资产
     # 转换为人民币----------------------------------------------------------
-    price_cny = gate_query.ticker(base_b + '_CNY')['last']
-    total_cny = float(price_cny) * total_money
-    return total_money, total_cny, b_price_last, b_hold
+    try:
+        price_cny = gate_query.ticker(base_b + '_CNY')['last']
+        total_cny = round(float(price_cny) * total_money, 2)
+        print('总的美金{}，总的人民币{}'.format(total_money, total_cny))
+        return total_money, total_cny, free_b_price
+    except Exception as err:
+        print(err)
+        time.sleep(5)
+        get_total_money()
 
 
-def hold_cost():
+def get_one_cost(bit_name, bit_amount):
     """
-    定义一个计算持仓成本的函数
-    :return:返回各个币种的持仓成本
+    计算单个币种的总成本，成本价格
+    :param bit_name: 币种名称
+    :param bit_amount: 币的数量
+    :return: 币种总成本，币种成本价
     """
-    # 获取vip等级
-    maker, taker = vip_fun(vip_level)
-    # 获取可用货币名称以及数量
-    b_name, b_num = fun_all_bitcoin()
-    b_types = len(b_name)   # 持仓币种数量
-    # 计算持仓成本------------------------------------------------
-    b_trade_cost = []  # 持仓成本
-    for m in range(b_types):
-        b_trade_amount = 0.0  # 订单中单次累计持有的币
-        cost_1 = 0.0  # 用于储存单个币种的总成本
-        data = gate_trade.mytradeHistory(b_name[m] + "_" + base_b, "")  # 订单号留空,查询成功后转json字典
-        data_trade = data['trades']  # 提取交易信息
-        data_trade_len = len(data_trade)  # 计算交易信息长度
+    aa = os.getcwd()
+    bb = aa + '/持仓价格'
+    if not os.path.exists(bb):
+        os.mkdir(bb)
+    try:
+        data_trade = gate_trade.mytradeHistory(bit_name + "_" + base_b, '')['trades']  # 提取交易信息
+        trade_list = [[trade['amount'], trade['type'],
+                       trade['total'], trade['point_fee'], trade['date']] for trade in data_trade]
+        df2 = pd.DataFrame(trade_list, columns=['amount', 'type', 'total', 'point_fee', 'date'], dtype='float')
+        df2['type'] = df2['type'].map({'sell': -1, 'buy': 1})
+        df2['amount_cumsum'] = (df2['type'] * df2['amount']).cumsum()  # 累计求和
+        df2['compare'] = df2['amount_cumsum'] - bit_amount
+        min_compare = abs(df2['compare']).min()
+        min_compare_index = np.where(abs(df2['compare']) == min_compare)
+        index = min_compare_index[0][0]
+        print(bit_name, index)
+        # df2.to_csv('./持仓价格/' + bit_name + '持仓成本.csv', index=None, encoding='utf-8') # 导出文件，建议不用导出
+        b_total_cost = (
+                    df2.iloc[:index + 1]['total'] * df2.iloc[:index + 1]['type'] + df2.iloc[:index + 1]['point_fee']).sum()
+        b_cost_price = b_total_cost / bit_amount
+        return b_total_cost, b_cost_price
+    except Exception as err:
+        print(err)
+        time.sleep(5)
+        get_one_cost(bit_name, bit_amount)
 
-        # 计算单个币种的累计------------------------------------------
-        for y in range(data_trade_len):  # 遍历交易信息历史记录
-            if data_trade[y]['type'] == 'buy':  # 假设为买入
-                b_trade_amount = b_trade_amount + float(data_trade[y]['amount'])  # 计算累计持有的币的数量
-                cost_1 = cost_1 + float(data_trade[y]['total']) * (1 + taker)  # 买入则动态成本增加
-            else:  # 假设为卖出
-                b_trade_amount = b_trade_amount - float(data_trade[y]['amount'])  # 计算累计持有的币的数量
-                cost_1 = cost_1 - float(data_trade[y]['total']) * (1 - maker)  # 卖出则动态成本减少
-            # 只要满足订单累计成本为正，且订单累计数量与目前的持仓数量近似
-            if cost_1 > 0 and abs(round(b_num[m], 4) - round(b_trade_amount, 4)) <= 0.001:  # 精度降低为3位，防红包
-                cost_last = cost_1 / b_trade_amount
-                b_trade_cost.append(round(cost_last, 4))  # 添加持仓成本到数组
-                break
-        # 如果循环结束还没找到成本价，那就以最后一个价格为成本价
-        else:
-            if b_trade_amount != 0:
-                cost_last = cost_1 / b_trade_amount
-            z = 1
-            # 如果持仓成本小于零则进入循环
-            while cost_last <= 0:
-                if data_trade[y - z]['type'] == 'sell':
-                    cost_1 = cost_1 + float(data_trade[y - z]['total']) * (1 - maker)  # 加上上一笔卖的收入
-                    b_trade_amount = b_trade_amount + float(data_trade[y - z]['amount'])  # 加上最后一笔卖的数量
-                    cost_last = cost_1 / b_trade_amount  # 重新计算持仓成本
-                else:
-                    cost_1 = cost_1 - float(data_trade[y - z]['total']) * (1 + taker)  # 减去上一笔买的支出
-                    b_trade_amount = b_trade_amount - float(data_trade[y - z]['amount'])  # 减去上一笔买的数量
-                    cost_last = cost_1 / b_trade_amount  # 重新计算持仓成本
-                z = z + 1
-            b_trade_cost.append(round(cost_last, 4))  # 添加持仓成本到数组
-    return b_trade_cost
+
+def get_hold_cost():
+    """
+    计算所有币种的持仓成本，后期可能会拆分
+    :return:
+    """
+    df = pd.read_csv('./data/当前可用货币.csv', encoding='utf-8')
+    b_name_list = df['货币名称'].values.tolist()
+    b_amount_list = df['货币数量'].values.tolist()
+    total_cost_list = []  # 总成本
+    cost_price_list = []  # 成本价
+    for b_name, b_amount in zip(b_name_list, b_amount_list):
+        try:
+            b_total_cost, b_cost_price = get_one_cost(b_name, b_amount)
+            total_cost_list.append(b_total_cost)
+            cost_price_list.append(b_cost_price)
+        except Exception as err:
+            print(err)
+            time.sleep(5)
+            get_hold_cost()
+    df['持仓成本'] = total_cost_list
+    df['持仓成本价'] = cost_price_list
+    df.to_csv('./data/当前可用货币.csv', encoding='utf-8', index=None)
+
+
+def get_profit():
+    """
+    用于计算当前收益率
+    :return:
+    """
+    df = pd.read_csv('./data/当前可用货币.csv', encoding='utf-8')
+    df['收益'] = (df['货币价格'] - df['持仓成本价']) * df['货币数量']
+    df['收益率'] = round((df['收益'] / df['持仓成本']), 4)
+    df['收益率'] = df['收益率'].apply(lambda x: format(x, '.2%'))
+    df.to_csv('./data/基础数据.csv', encoding='utf-8-sig', index=None)
 
 
 def orders_fun():
@@ -238,39 +229,44 @@ def orders_fun():
     # 挂单状态函数
     :return:
     """
-    data = gate_query.openOrders()
-    data1 = data["orders"]
-    order_len = len(data1)  # 获取订单数量
-    order_name = []  # 交易对名称
-    order_type = []  # 定义数组储存类型
-    initial_rate = []  # 下单价格
-    initial_amount = []  # 下单数量
-    order_total = []  # 订单总价
-    deal_amount = []  # 成交数量
-    fill_rate = []  # 完成率
-    order_status = []  # 交易状态
-    for i in range(order_len):
-        order_name.append(data1[i]['currencyPair'].upper())
-        data2 = data1[i]['type']
-        if data2 == "sell":
-            data2 = "卖出"
-        else:
-            data2 = "买入"
-        order_type.append(data2)
-        initial_rate.append(float(data1[i]['initialRate']))
-        initial_amount.append(float(data1[i]['initialAmount']))
-        order_total.append(float(data1[i]['total']))
-        deal_amount.append(float(data1[i]['filledAmount']))
-        fill_rate.append(deal_amount[i] / initial_amount[i])
-        data3 = data1[i]['status']
-        if data3 == "open":
-            data3 = "已挂单"
-        elif data3 == "cancelled":
-            data3 = "已取消"
-        else:
-            data3 = "已完成"
-        order_status.append(data3)
-    return order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate, order_status
+    try:
+        data = gate_query.openOrders()
+        data1 = data["orders"]
+        order_len = len(data1)  # 获取订单数量
+        order_name = []  # 交易对名称
+        order_type = []  # 定义数组储存类型
+        initial_rate = []  # 下单价格
+        initial_amount = []  # 下单数量
+        order_total = []  # 订单总价
+        deal_amount = []  # 成交数量
+        fill_rate = []  # 完成率
+        order_status = []  # 交易状态
+        for i in range(order_len):
+            order_name.append(data1[i]['currencyPair'].upper())
+            data2 = data1[i]['type']
+            if data2 == "sell":
+                data2 = "卖出"
+            else:
+                data2 = "买入"
+            order_type.append(data2)
+            initial_rate.append(float(data1[i]['initialRate']))
+            initial_amount.append(float(data1[i]['initialAmount']))
+            order_total.append(float(data1[i]['total']))
+            deal_amount.append(float(data1[i]['filledAmount']))
+            fill_rate.append(deal_amount[i] / initial_amount[i])
+            data3 = data1[i]['status']
+            if data3 == "open":
+                data3 = "已挂单"
+            elif data3 == "cancelled":
+                data3 = "已取消"
+            else:
+                data3 = "已完成"
+            order_status.append(data3)
+        return order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate, order_status
+    except Exception as err:
+        print(err)
+        time.sleep(5)
+        orders_fun()
 
 
 def creat_html(i, message):
@@ -279,7 +275,8 @@ def creat_html(i, message):
     :return: 没有返回
     """
     # 路径选择
-    html = 'will/{}.html'
+    # html = 'will/{}.html'
+    html = '//www/wwwroot/www.vbahome.cn/gate/will/{}.html'
     with open(html.format(i), 'w', encoding='utf-8') as f:
         f.write(message)
 
@@ -345,3 +342,19 @@ def fun_will(interval, name, word=''):
 </html>
     """ % (word, name, word, interval, name)
     return html
+
+
+if __name__ == '__main__':
+    a = os.getcwd()  # 获取当前路径
+    b = a + '/' + 'data'
+    if not os.path.exists(b):
+        os.mkdir(b)
+    # func_basic()
+    # fun_all_bitcoin()
+    # func_base_b()
+    # trade_cost_query()
+    # trade_cost_query()
+    # query_price()
+    # get_total_money()
+    # get_hold_cost()
+    get_profit()
