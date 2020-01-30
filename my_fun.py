@@ -13,46 +13,6 @@ gate_query = GateIO(query_url, api_key, secret_key)  # 查询连接
 gate_trade = GateIO(trade_url, api_key, secret_key)  # 交易连接
 
 
-def vip_fun(vip):
-    """
-    此函数用于计算vip等级优惠
-    :param vip: 需要输入vip等级
-    :return: 返回Taker,Maker费率
-    """
-    if vip == 0:
-        maker = 0.2 / 100
-        taker = 0.2 / 100
-
-    else:
-        maker = (0.195 - 0.01 * vip) / 100
-        taker = (0.205 - 0.01 * vip) / 100
-    return maker, taker
-
-
-def decimal_n(decimal):
-    """
-    定义一个查询小数后多少位的函数
-    :param decimal: 需要给出小数
-    :return: 返回小数多少位
-    """
-    n = len(str(decimal).split(".")[1])
-    print(n)
-    return n
-
-
-def fun_num_raise(num, t):
-    """
-    定义一个小数位最后一位增加n的函数
-    :param num: 数字
-    :param t: 增加多少
-    :return: 返回增加的值
-    """
-    n = decimal_n(num)
-    s_sum = num + 10**(-n)*t
-    s_sum = round(s_sum, n)  # 取n位小数
-    return s_sum
-
-
 def func_basic():
     """
     创建一个基础查询函数
@@ -119,9 +79,13 @@ def query_price():
     """
     df = pd.read_csv('./data/当前可用货币.csv', encoding='utf-8')
     b_name_list = df['货币名称'].values.tolist()
+    b_name_price_list = []
     try:
-        b_name_price = [float(gate_query.ticker(b_name + '_' + base_b)['last']) for b_name in b_name_list]
-        df['货币价格'] = b_name_price
+        for b_name in b_name_list:
+            b_name_price = float(gate_query.ticker(b_name + '_' + base_b)['last'])
+            b_name_price_list.append(b_name_price)
+            print('已查询{}的最新价格:{:.4f}'.format(b_name, b_name_price))
+        df['货币价格'] = b_name_price_list
         df.to_csv('./data/当前可用货币.csv', encoding='utf-8-sig', index=None)
     except Exception as err:
         print(err)
@@ -176,11 +140,11 @@ def get_one_cost(bit_name, bit_amount):
         min_compare = abs(df2['compare']).min()
         min_compare_index = np.where(abs(df2['compare']) == min_compare)
         index = min_compare_index[0][0]
-        print(bit_name, index)
         # df2.to_csv('./持仓价格/' + bit_name + '持仓成本.csv', index=None, encoding='utf-8') # 导出文件，建议不用导出
         b_total_cost = (
                     df2.iloc[:index + 1]['total'] * df2.iloc[:index + 1]['type'] + df2.iloc[:index + 1]['point_fee']).sum()
         b_cost_price = b_total_cost / bit_amount
+        print('{}的成本价为：{:.4f}'.format(bit_name, b_cost_price))
         return b_total_cost, b_cost_price
     except Exception as err:
         print(err)
