@@ -31,7 +31,7 @@ def http_get(base_url, resource, params=''):
     :return:返回请求结果
     """
     url = base_url + resource + '/' + params
-    data = requests.get(url).json()
+    data = requests.get(url, timeout=10).json()
     return data
 
 
@@ -51,7 +51,7 @@ def http_post(base_url, resource, params, api_key, secret_key):
         "SIGN": get_sign(params, secret_key)
     }
     url = base_url + resource
-    data = requests.post(data=params, headers=headers, url=url).json()
+    data = requests.post(data=params, headers=headers, url=url, timeout=10).json()
     return data
 
 
