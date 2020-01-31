@@ -18,32 +18,34 @@ def func_basic():
     创建一个基础查询函数
     :return: 返回总的货币数量，可用货币数量，总的货币名称
     """
-    try:
-        # 获取帐号资金余额
-        date = gate_trade.balances()
-        total_money1 = date["available"]  # 可用数字货币
-        total_money0 = date["locked"]  # 锁定数字货币
-        # 可交易货币
-        money_key_available = list(total_money1.keys())
-        money_num_available = list(total_money1.values())
-        key_types = len(money_key_available)
+    for i in range(2):
+        try:
+            # 获取帐号资金余额
+            date = gate_trade.balances()
+            total_money1 = date["available"]  # 可用数字货币
+            total_money0 = date["locked"]  # 锁定数字货币
+            # 可交易货币
+            money_key_available = list(total_money1.keys())
+            money_num_available = list(total_money1.values())
+            key_types = len(money_key_available)
 
-        # 不可交易货币(处于挂单状态中，暂时不可交易)
-        money_num_locked = list(total_money0.values())
+            # 不可交易货币(处于挂单状态中，暂时不可交易)
+            money_num_locked = list(total_money0.values())
 
-        # 总货币数量
-        money_num_all = []
-        for i in range(key_types):
-            money_num_all.append(float(money_num_available[i]) + float(money_num_locked[i]))  # 将挂单中的币数量加上去
-        my_dict = {}
-        my_dict['货币名称'] = money_key_available
-        my_dict['货币总量'] = money_num_all
-        my_dict['可用数量'] = money_num_available
-        df = pd.DataFrame({'货币名称': money_key_available, '货币数量': money_num_all, '可交易数量': money_num_available})
-        df.to_csv('./data/买过的货币.csv', encoding='utf-8', index=None)
-    except Exception as err:
-        print(err)
-        time.sleep(5)
+            # 总货币数量
+            money_num_all = []
+            for i in range(key_types):
+                money_num_all.append(float(money_num_available[i]) + float(money_num_locked[i]))  # 将挂单中的币数量加上去
+            my_dict = {}
+            my_dict['货币名称'] = money_key_available
+            my_dict['货币总量'] = money_num_all
+            my_dict['可用数量'] = money_num_available
+            df = pd.DataFrame({'货币名称': money_key_available, '货币数量': money_num_all, '可交易数量': money_num_available})
+            df.to_csv('./data/买过的货币.csv', encoding='utf-8', index=None)
+            break
+        except Exception as err:
+            print(err)
+            time.sleep(5)
 
 
 def fun_all_bitcoin():
@@ -52,10 +54,10 @@ def fun_all_bitcoin():
     :return: 持仓币种名称，持仓币种数量，总基础货币，可用基础货币
     """
     df = pd.read_csv('./data/买过的货币.csv', encoding='utf-8')
-    a = df[df['货币名称'].isin(['POINT', 'USDT'])].index.values  # 删除点卡和USDT
-    df.drop(a, inplace=True)
-    b = df[df['货币数量'] < 0.001].index.values  # 删除货币数量小于0.001的币种
-    df.drop(b, inplace=True)
+    aa = df[df['货币名称'].isin(['POINT', 'USDT'])].index.values  # 删除点卡和USDT
+    df.drop(aa, inplace=True)
+    bb = df[df['货币数量'] < 0.001].index.values  # 删除货币数量小于0.001的币种
+    df.drop(bb, inplace=True)
     df.to_csv('./data/当前可用货币.csv', encoding='utf-8-sig', index=None)
 
 
@@ -80,17 +82,18 @@ def query_price():
     df = pd.read_csv('./data/当前可用货币.csv', encoding='utf-8')
     b_name_list = df['货币名称'].values.tolist()
     b_name_price_list = []
-    try:
-        for b_name in b_name_list:
-            b_name_price = float(gate_query.ticker(b_name + '_' + base_b)['last'])
-            b_name_price_list.append(b_name_price)
-            print('已查询{}的最新价格:{:.4f}'.format(b_name, b_name_price))
-        df['货币价格'] = b_name_price_list
-        df.to_csv('./data/当前可用货币.csv', encoding='utf-8-sig', index=None)
-    except Exception as err:
-        print(err)
-        time.sleep(5)
-        query_price()  # 重新执行
+    for i in range(2):
+        try:
+            for b_name in b_name_list:
+                b_name_price = float(gate_query.ticker(b_name + '_' + base_b)['last'])
+                b_name_price_list.append(b_name_price)
+                print('已查询{}的最新价格:{:.4f}'.format(b_name, b_name_price))
+            df['货币价格'] = b_name_price_list
+            df.to_csv('./data/当前可用货币.csv', encoding='utf-8-sig', index=None)
+            break
+        except Exception as err:
+            print(err)
+            time.sleep(5)
 
 
 def get_total_money():
@@ -104,18 +107,21 @@ def get_total_money():
     total_money = (df['货币数量'] * df['货币价格']).sum()
     base_b_num = df2[df2['货币名称'] == base_b]['货币数量'].values[0]
     free_b_price = df[df['货币名称'] == 'GT']['货币价格'].values[0]
+    total_cny = 0
     # 计算完后还需要加上基础货币(USDT)的数量---------------------------------
     total_money = round(total_money + base_b_num, 2)  # 计算总资产
     # 转换为人民币----------------------------------------------------------
-    try:
-        price_cny = gate_query.ticker(base_b + '_CNY')['last']
-        total_cny = round(float(price_cny) * total_money, 2)
-        print('总的美金{}，总的人民币{}'.format(total_money, total_cny))
-        return total_money, total_cny, free_b_price
-    except Exception as err:
-        print(err)
-        time.sleep(5)
-        get_total_money()
+    for i in range(2):
+        try:
+            price_cny = gate_query.ticker(base_b + '_CNY')['last']
+            total_cny = round(float(price_cny) * total_money, 2)
+            print('总的美金{}，总的人民币{}'.format(total_money, total_cny))
+            break
+        except Exception as err:
+            print(err)
+            time.sleep(5)
+            get_total_money()
+    return total_money, total_cny, free_b_price
 
 
 def get_one_cost(bit_name, bit_amount):
@@ -129,27 +135,29 @@ def get_one_cost(bit_name, bit_amount):
     bb = aa + '/持仓价格'
     if not os.path.exists(bb):
         os.mkdir(bb)
-    try:
-        data_trade = gate_trade.mytradeHistory(bit_name + "_" + base_b, '')['trades']  # 提取交易信息
-        trade_list = [[trade['amount'], trade['type'],
-                       trade['total'], trade['point_fee'], trade['date']] for trade in data_trade]
-        df2 = pd.DataFrame(trade_list, columns=['amount', 'type', 'total', 'point_fee', 'date'], dtype='float')
-        df2['type'] = df2['type'].map({'sell': -1, 'buy': 1})
-        df2['amount_cumsum'] = (df2['type'] * df2['amount']).cumsum()  # 累计求和
-        df2['compare'] = df2['amount_cumsum'] - bit_amount
-        min_compare = abs(df2['compare']).min()
-        min_compare_index = np.where(abs(df2['compare']) == min_compare)
-        index = min_compare_index[0][0]
-        # df2.to_csv('./持仓价格/' + bit_name + '持仓成本.csv', index=None, encoding='utf-8') # 导出文件，建议不用导出
-        b_total_cost = (
-                    df2.iloc[:index + 1]['total'] * df2.iloc[:index + 1]['type'] + df2.iloc[:index + 1]['point_fee']).sum()
-        b_cost_price = b_total_cost / bit_amount
-        print('{}的成本价为：{:.4f}'.format(bit_name, b_cost_price))
-        return b_total_cost, b_cost_price
-    except Exception as err:
-        print(err)
-        time.sleep(5)
-        get_one_cost(bit_name, bit_amount)
+    b_total_cost, b_cost_price = 1, 1
+    for i in range(2):
+        try:
+            data_trade = gate_trade.mytradeHistory(bit_name + "_" + base_b, '')['trades']  # 提取交易信息
+            trade_list = [[trade['amount'], trade['type'],
+                           trade['total'], trade['point_fee'], trade['date']] for trade in data_trade]
+            df2 = pd.DataFrame(trade_list, columns=['amount', 'type', 'total', 'point_fee', 'date'], dtype='float')
+            df2['type'] = df2['type'].map({'sell': -1, 'buy': 1})
+            df2['amount_cumsum'] = (df2['type'] * df2['amount']).cumsum()  # 累计求和
+            df2['compare'] = df2['amount_cumsum'] - bit_amount
+            min_compare = abs(df2['compare']).min()
+            min_compare_index = np.where(abs(df2['compare']) == min_compare)
+            index = min_compare_index[0][0]
+            # df2.to_csv('./持仓价格/' + bit_name + '持仓成本.csv', index=None, encoding='utf-8') # 导出文件，建议不用导出
+            b_total_cost = (
+                        df2.iloc[:index + 1]['total'] * df2.iloc[:index + 1]['type'] + df2.iloc[:index + 1]['point_fee']).sum()
+            b_cost_price = b_total_cost / bit_amount
+            print('{}的成本价为：{:.4f}'.format(bit_name, b_cost_price))
+            break
+        except Exception as err:
+            print(err)
+            time.sleep(5)
+    return b_total_cost, b_cost_price
 
 
 def get_hold_cost():
@@ -193,44 +201,47 @@ def orders_fun():
     # 挂单状态函数
     :return:
     """
-    try:
-        data = gate_query.openOrders()
-        data1 = data["orders"]
-        order_len = len(data1)  # 获取订单数量
-        order_name = []  # 交易对名称
-        order_type = []  # 定义数组储存类型
-        initial_rate = []  # 下单价格
-        initial_amount = []  # 下单数量
-        order_total = []  # 订单总价
-        deal_amount = []  # 成交数量
-        fill_rate = []  # 完成率
-        order_status = []  # 交易状态
-        for i in range(order_len):
-            order_name.append(data1[i]['currencyPair'].upper())
-            data2 = data1[i]['type']
-            if data2 == "sell":
-                data2 = "卖出"
-            else:
-                data2 = "买入"
-            order_type.append(data2)
-            initial_rate.append(float(data1[i]['initialRate']))
-            initial_amount.append(float(data1[i]['initialAmount']))
-            order_total.append(float(data1[i]['total']))
-            deal_amount.append(float(data1[i]['filledAmount']))
-            fill_rate.append(deal_amount[i] / initial_amount[i])
-            data3 = data1[i]['status']
-            if data3 == "open":
-                data3 = "已挂单"
-            elif data3 == "cancelled":
-                data3 = "已取消"
-            else:
-                data3 = "已完成"
-            order_status.append(data3)
-        return order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate, order_status
-    except Exception as err:
-        print(err)
-        time.sleep(5)
-        orders_fun()
+    order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate,\
+    order_status = ('', '', '', '', '', '', '', '')
+    for i in range(2):
+        try:
+            data = gate_query.openOrders()
+            data1 = data["orders"]
+            order_len = len(data1)  # 获取订单数量
+            order_name = []  # 交易对名称
+            order_type = []  # 定义数组储存类型
+            initial_rate = []  # 下单价格
+            initial_amount = []  # 下单数量
+            order_total = []  # 订单总价
+            deal_amount = []  # 成交数量
+            fill_rate = []  # 完成率
+            order_status = []  # 交易状态
+            for i in range(order_len):
+                order_name.append(data1[i]['currencyPair'].upper())
+                data2 = data1[i]['type']
+                if data2 == "sell":
+                    data2 = "卖出"
+                else:
+                    data2 = "买入"
+                order_type.append(data2)
+                initial_rate.append(float(data1[i]['initialRate']))
+                initial_amount.append(float(data1[i]['initialAmount']))
+                order_total.append(float(data1[i]['total']))
+                deal_amount.append(float(data1[i]['filledAmount']))
+                fill_rate.append(deal_amount[i] / initial_amount[i])
+                data3 = data1[i]['status']
+                if data3 == "open":
+                    data3 = "已挂单"
+                elif data3 == "cancelled":
+                    data3 = "已取消"
+                else:
+                    data3 = "已完成"
+                order_status.append(data3)
+                break
+        except Exception as err:
+            print(err)
+            time.sleep(5)
+    return order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate, order_status
 
 
 def creat_html(i, message):
