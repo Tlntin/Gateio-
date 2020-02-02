@@ -4,6 +4,7 @@ import time
 import os
 import pandas as pd
 import numpy as np
+import random
 # 获取用户信息
 (api_key, secret_key, btc_address, query_url, trade_url) = user_info()
 (user_name, free_b, locked_type, locked_num, vip_level, refresh_time, base_b) = other_info()
@@ -18,7 +19,7 @@ def func_basic():
     创建一个基础查询函数
     :return: 返回总的货币数量，可用货币数量，总的货币名称
     """
-    for i in range(2):
+    for i in range(4):
         try:
             # 获取帐号资金余额
             date = gate_trade.balances()
@@ -45,7 +46,7 @@ def func_basic():
             break
         except Exception as err:
             print(err)
-            time.sleep(5)
+            time.sleep(10)
 
 
 def fun_all_bitcoin():
@@ -82,18 +83,20 @@ def query_price():
     df = pd.read_csv('./data/当前可用货币.csv', encoding='utf-8')
     b_name_list = df['货币名称'].values.tolist()
     b_name_price_list = []
-    for i in range(2):
-        try:
-            for b_name in b_name_list:
+    for b_name in b_name_list:
+        b_name_price = 0
+        for i in range(5):  # 循环5次，防止出错
+            try:
                 b_name_price = float(gate_query.ticker(b_name + '_' + base_b)['last'])
-                b_name_price_list.append(b_name_price)
-                print('已查询{}的最新价格:{:.4f}'.format(b_name, b_name_price))
-            df['货币价格'] = b_name_price_list
-            df.to_csv('./data/当前可用货币.csv', encoding='utf-8-sig', index=None)
-            break
-        except Exception as err:
-            print(err)
-            time.sleep(5)
+                time.sleep(random.random()/3 + 0.2)
+                break
+            except Exception as err:
+                print(err)
+                time.sleep(5)
+        b_name_price_list.append(b_name_price)
+        print('已查询{}的最新价格:{:.4f}'.format(b_name, b_name_price))
+    df['货币价格'] = b_name_price_list
+    df.to_csv('./data/当前可用货币.csv', encoding='utf-8-sig', index=None)
 
 
 def get_total_money():
@@ -111,7 +114,7 @@ def get_total_money():
     # 计算完后还需要加上基础货币(USDT)的数量---------------------------------
     total_money = round(total_money + base_b_num, 2)  # 计算总资产
     # 转换为人民币----------------------------------------------------------
-    for i in range(2):
+    for i in range(4):
         try:
             price_cny = gate_query.ticker(base_b + '_CNY')['last']
             total_cny = round(float(price_cny) * total_money, 2)
@@ -136,7 +139,7 @@ def get_one_cost(bit_name, bit_amount):
     if not os.path.exists(bb):
         os.mkdir(bb)
     b_total_cost, b_cost_price = 1, 1
-    for i in range(2):
+    for i in range(4):
         try:
             data_trade = gate_trade.mytradeHistory(bit_name + "_" + base_b, '')['trades']  # 提取交易信息
             trade_list = [[trade['amount'], trade['type'],
@@ -173,6 +176,7 @@ def get_hold_cost():
     for b_name, b_amount in zip(b_name_list, b_amount_list):
         try:
             b_total_cost, b_cost_price = get_one_cost(b_name, b_amount)
+            time.sleep(random.random()/3 + 0.2)
             total_cost_list.append(b_total_cost)
             cost_price_list.append(b_cost_price)
         except Exception as err:
@@ -203,7 +207,7 @@ def orders_fun():
     """
     order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate,\
     order_status = ('', '', '', '', '', '', '', '')
-    for i in range(2):
+    for i in range(4):
         try:
             data = gate_query.openOrders()
             data1 = data["orders"]
@@ -240,7 +244,7 @@ def orders_fun():
                 break
         except Exception as err:
             print(err)
-            time.sleep(5)
+            time.sleep(10)
     return order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate, order_status
 
 
