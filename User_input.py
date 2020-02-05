@@ -12,7 +12,7 @@ def user_info():
 
 def other_info():
     # 填写其他api获取不了的信息****************
-    user_name = "Tlntin"  # 你的用户名
+    user_name = "User_name"  # 你的用户名
     free_b = 40.0  # 你的GT赠币个数（如果有其它的自行补充）
     locked_type = "BTC"  # Startup锁仓币种
     loced_num = 0  # 锁仓币种数量,没有就填零
