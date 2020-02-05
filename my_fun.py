@@ -200,54 +200,6 @@ def get_profit():
     df.to_csv('./data/基础数据.csv', encoding='utf-8-sig', index=None)
 
 
-def orders_fun():
-    """
-    # 挂单状态函数
-    :return:
-    """
-    order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate,\
-    order_status = ('', '', '', '', '', '', '', '')
-    for i in range(4):
-        try:
-            data = gate_query.openOrders()
-            data1 = data["orders"]
-            order_len = len(data1)  # 获取订单数量
-            order_name = []  # 交易对名称
-            order_type = []  # 定义数组储存类型
-            initial_rate = []  # 下单价格
-            initial_amount = []  # 下单数量
-            order_total = []  # 订单总价
-            deal_amount = []  # 成交数量
-            fill_rate = []  # 完成率
-            order_status = []  # 交易状态
-            for i in range(order_len):
-                order_name.append(data1[i]['currencyPair'].upper())
-                data2 = data1[i]['type']
-                if data2 == "sell":
-                    data2 = "卖出"
-                else:
-                    data2 = "买入"
-                order_type.append(data2)
-                initial_rate.append(float(data1[i]['initialRate']))
-                initial_amount.append(float(data1[i]['initialAmount']))
-                order_total.append(float(data1[i]['total']))
-                deal_amount.append(float(data1[i]['filledAmount']))
-                fill_rate.append(deal_amount[i] / initial_amount[i])
-                data3 = data1[i]['status']
-                if data3 == "open":
-                    data3 = "已挂单"
-                elif data3 == "cancelled":
-                    data3 = "已取消"
-                else:
-                    data3 = "已完成"
-                order_status.append(data3)
-                break
-        except Exception as err:
-            print(err)
-            time.sleep(10)
-    return order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate, order_status
-
-
 def creat_html(i, message):
     """
     定义一个函数用于创建html

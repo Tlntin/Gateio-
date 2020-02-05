@@ -29,10 +29,7 @@ if __name__ == '__main__':
         print('查询当前总成本成功')
         get_profit()  # 计算总利润
         # 查询基础货币，可用基础货币，点卡总数，比特币总数
-        for i in range(60):
-            # 持仓订单数，交易对名称，类型，单价，数量，总价，成交率，挂单状态
-            (order_len, order_name, order_type, initial_rate, initial_amount, order_total, fill_rate,
-             order_status) = orders_fun()
+        for i in range(10):
             base_b_num, base_b_mum_available, point_num, btc_num = func_base_b()
             total_money, total_cny, free_b_price = get_total_money()  # 查询钱包余额，转RMB的价格
             # 计算利润
@@ -42,7 +39,8 @@ if __name__ == '__main__':
             profit_qc = total_money - 700  # 不考虑点卡
             profit_qc_qz = profit_qc - free_b * free_b_price  # 不考虑点卡不考虑赠币
             print("开始写入html")
-            GEN_HTML = "./data/index.html"  # 路径准备
+            # GEN_HTML = "./data/index.html"  # 路径准备
+            GEN_HTML = "/www/wwwroot/www.vbahome.cn/gate/index.html"
             # 获取刷新时间(以北京时间为准)
             fmt = '%Y-%m-%d %H:%M:%S %Z'
             d = datetime.datetime.now(pytz.timezone("Asia/Shanghai"))
@@ -78,53 +76,8 @@ if __name__ == '__main__':
             for mm in result2:
                 message2 = p2.sub('<td><span style="color:#FF0000">{}</span></td>'.format(mm), message2, count=1)
             f.write(message2)
-            message3 = ''
-            # 写入挂单情况
-            if order_len != 0:  # 如果当前存在挂单
-                message4 = """
-                </tr>
-            </table>
-                <h3>挂单情况</h3>
-            <table border="1" cellspacing="0">
-                <tr>"""
-                message3 = message3 + message4
-                # 写入挂单情况
-                message5 = """
-                    <th>交易对</th>
-                    <th>类型</th>
-                    <th>单价</th>
-                    <th>数量</th>
-                    <th>总价</th>
-                    <th>成交率</th>
-                    <th>状态</th>
-                """
-                message3 = message3 + message5
-                for xx in range(order_len):
-                    message6 = """
-                </tr>
-                <tr>
-                    <td><a target="_blank" href="https://www.gateio.life/trade/%s">%s</a></td>
-                    <td>%s</td>
-                    <td>%s</td>
-                    <td>%s</td>
-                    <td>%s</td>
-                    <td>%.2f%%</td>
-                    <td>%s</td>
-                """ % (order_name[xx], order_name[xx], order_type[xx], str(initial_rate[xx]), str(initial_amount[xx]),
-                       str(order_total[xx]), fill_rate[xx]*100, order_status[xx])
-                    message3 = message3 + message6
-                    f.write(message3)
-                    message7 = """
-                </tr>
-            </table>
-                    """
-                    f.write(message7)
-                    print('开始更新币种成本')
-                    get_hold_cost()  # 计算总成本，比较耗时
-                    print('更新当前总成本成功')
-                    get_profit()  # 计算总利润
-                    # 写入情况信息
-            message8 = """
+            # 写入情况信息
+            message3 = """
        <p>目前钱包总额为：<strong>%.2f</strong>(美元折算) &#9||&#9 <strong>%.2f</strong>(人民币折算)</p>
        <p>比特币数量：<strong>%.4f</strong></p>
        <p>点卡数量: <strong>%.2f</strong></p>
@@ -132,9 +85,9 @@ if __name__ == '__main__':
        <h3>技术分析</h3>
        <p>**<a target="_blank" href="will/index.html">货币预测</a>**<--分割线-->**<a target="_blank" href="will/index2.html">股票预测</a>**</p>
            """ % (total_money, total_cny, btc_num, point_num, base_b, base_b_num, base_b, base_b_mum_available)
-            f.write(message8)
+            f.write(message3)
             # 开始计算累计收益
-            message9 = """
+            message4 = """
         <h3>累计收益</h3>
         <table>
             <tr>
@@ -157,13 +110,19 @@ if __name__ == '__main__':
                 <td>%.4f</td>
             </tr>
         </table>
-        <!--熊市暂不开启
-        <h3><span class="blue-text">加密货币筛选器</span></h3>
+        <h3>开源链接</h3>
+        <p>跳转<a target="_blank" href="https://github.com/Tlntin/Gateio-">github</a></p>
+        <h3><span class="blue-text">加密货币筛选器(仅供参考)</span></h3>
         <div class="tradingview-widget-container">
           <div class="tradingview-widget-container__widget"></div>
-          <div class="tradingview-widget-copyright"><a href="https://cn.tradingview.com/crypto-screener/" rel="noopener"
-           target="_blank"></a>由Tlntln提供</div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-screener.js" async>
+        </div>
+                            """ % (profit, profit_qz, profit_qc, profit_qc_qz)
+            f.write(message4)
+            # 写入Html的最后部分，加入手机端自适应大小
+            message_foot = """
+    </body>
+        <script src="001.js" type="text/javascript"></script>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-screener.js" async>
           {
           "width": 1100,
           "height": 512,
@@ -175,16 +134,6 @@ if __name__ == '__main__':
           "locale": "zh_CN"
         }
           </script>
-        </div>
-        -->
-        <h3>开源链接</h3>
-        <p>跳转<a target="_blank" href="https://github.com/Tlntin/Gateio-">github</a></p>
-                            """ % (profit, profit_qz, profit_qc, profit_qc_qz)
-            f.write(message9)
-            # 写入Html的最后部分，加入手机端自适应大小
-            message_foot = """
-    </body>
-        <script src="001.js" type="text/javascript"></script>
 </html>
             """
             f.write(message_foot)
